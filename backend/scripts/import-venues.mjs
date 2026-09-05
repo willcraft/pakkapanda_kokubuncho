@@ -16,8 +16,9 @@ const opt = (name, fallback) => {
   return a ? Number(a.split('=')[1]) : fallback;
 };
 const area = JSON.parse(readFileSync(new URL('../../shared/area.json', import.meta.url), 'utf8'));
-const LIMIT = opt('limit', 60);
+const LIMIT = opt('limit', 250);
 const RADIUS = opt('radius', area.radiusM + 50);
+const PER_CELL = opt('percell', 2); // 約45mグリッドのセルあたり最大件数(密集の間引き)
 const CENTER = { lat: area.lat, lng: area.lng };
 
 // アプリの4カテゴリへの近似マッピング
@@ -51,7 +52,7 @@ const res = await fetch('https://overpass-api.de/api/interpreter', {
 if (!res.ok) throw new Error(`Overpass API error: ${res.status}`);
 const json = await res.json();
 
-const venues = json.elements
+const candidates = json.elements
   .filter((e) => e.tags?.name && CATEGORY[e.tags.amenity])
   .map((e) => ({
     id: `osm-${e.type}-${e.id}`,
@@ -60,7 +61,29 @@ const venues = json.elements
     lat: e.lat ?? e.center?.lat,
     lng: e.lon ?? e.center?.lon,
   }))
-  .filter((v) => v.lat !== undefined && v.lng !== undefined)
+  .filter((v) => v.lat !== undefined && v.lng !== undefined);
+
+// 「中心から近い順」だと外周が空白になるため、グリッドで空間的に間引いて
+// エリア全体をまんべんなくカバーする。セル内では夜の店を優先する。
+const CELL_DEG = 0.0004; // 緯度約45m
+const PRIORITY = { バー: 0, ラウンジ: 0, 居酒屋: 1, カフェ: 2 };
+const cells = new Map();
+for (const v of candidates) {
+  const key = `${Math.floor(v.lat / CELL_DEG)}:${Math.floor(v.lng / CELL_DEG)}`;
+  const list = cells.get(key) ?? [];
+  list.push(v);
+  cells.set(key, list);
+}
+const venues = [...cells.values()]
+  .flatMap((list) =>
+    list
+      .sort(
+        (a, b) =>
+          PRIORITY[a.category] - PRIORITY[b.category] ||
+          distanceM(a.lat, a.lng) - distanceM(b.lat, b.lng),
+      )
+      .slice(0, PER_CELL),
+  )
   .sort((a, b) => distanceM(a.lat, a.lng) - distanceM(b.lat, b.lng))
   .slice(0, LIMIT);
 

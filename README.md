@@ -45,7 +45,7 @@ npm start          # Expo Dev Server → Expo Go / シミュレータ
 
 ```bash
 cd backend
-npm run import:venues          # ローカルD1へ(中心から近い順60件)
+npm run import:venues          # ローカルD1へ(エリア全域をグリッド間引きで約200件)
 npm run import:venues:remote   # 本番D1へ
 # 件数・範囲の変更: node scripts/import-venues.mjs --limit=100 --radius=400
 ```
