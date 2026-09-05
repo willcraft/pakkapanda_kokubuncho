@@ -3,7 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { api, useCompatWith, useIsLiked, useMyProfile, usePerson, useVenue } from '@/api/client';
+import { api, useMyProfile, usePersonDetail, useVenueSummary } from '@/api/client';
 import { HobbyTag } from '@/components/HobbyTag';
 import { MbtiAvatar } from '@/components/MbtiAvatar';
 import { PrimaryButton } from '@/components/PrimaryButton';
@@ -14,15 +14,18 @@ import { RANK_LABELS } from '@/types';
 export default function PersonScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const person = usePerson(id);
+  const { person, refresh } = usePersonDetail(id);
   const profile = useMyProfile();
-  const compat = useCompatWith(id);
-  const liked = useIsLiked(id);
-  const venue = useVenue(person?.venueId);
+  const venue = useVenueSummary(person?.venueId);
 
-  if (!person || !profile || !compat) return null;
+  if (!person || !profile) return <View style={styles.container} />;
 
   const personality = PERSONALITY[person.mbti];
+
+  const onLike = async () => {
+    await api.sendLike(person.userId);
+    await refresh();
+  };
 
   return (
     <View style={styles.container}>
@@ -32,11 +35,11 @@ export default function PersonScreen() {
             <Pressable style={styles.back} onPress={() => router.back()}>
               <Ionicons name="chevron-back" size={20} color={colors.text} />
             </Pressable>
-            <View style={[styles.rankChip, { borderColor: rankColor(compat.rank) }]}>
-              <View style={[styles.rankDot, { backgroundColor: rankColor(compat.rank) }]}>
-                <Text style={styles.rankDotText}>{compat.rank}</Text>
+            <View style={[styles.rankChip, { borderColor: rankColor(person.compat.rank) }]}>
+              <View style={[styles.rankDot, { backgroundColor: rankColor(person.compat.rank) }]}>
+                <Text style={styles.rankDotText}>{person.compat.rank}</Text>
               </View>
-              <Text style={styles.rankChipText}>相性:{RANK_LABELS[compat.rank]}</Text>
+              <Text style={styles.rankChipText}>相性:{RANK_LABELS[person.compat.rank]}</Text>
             </View>
           </View>
           <View style={styles.heroAvatar}>
@@ -84,10 +87,10 @@ export default function PersonScreen() {
       </ScrollView>
 
       <View style={styles.footer}>
-        {liked ? (
-          <PrimaryButton label="チャットを開く" onPress={() => router.push(`/chat/${person.id}`)} />
+        {person.liked ? (
+          <PrimaryButton label="チャットを開く" onPress={() => router.push(`/chat/${person.userId}`)} />
         ) : (
-          <PrimaryButton label="♡ いいねを送る" onPress={() => api.sendLike(person.id)} />
+          <PrimaryButton label="♡ いいねを送る" onPress={() => void onLike()} />
         )}
         <Text style={styles.footerCaption}>
           どちらかが「いいね」を送るとチャットができるようになります

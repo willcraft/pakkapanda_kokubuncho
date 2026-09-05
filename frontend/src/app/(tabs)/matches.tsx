@@ -3,7 +3,8 @@ import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { api, useIsLiked, useMatches, useVenue, type Match } from '@/api/client';
+import { api, useMatchesList, useMatchesPolling, useVenueSummary } from '@/api/client';
+import type { ApiPerson } from '@/api/types';
 import { HobbyTag } from '@/components/HobbyTag';
 import { MbtiAvatar } from '@/components/MbtiAvatar';
 import { colors, rankColor } from '@/theme';
@@ -11,15 +12,13 @@ import { RANK_LABELS, type Rank } from '@/types';
 
 const RANKS: Rank[] = ['S', 'A', 'B', 'C'];
 
-function MatchCard({ match }: { match: Match }) {
+function MatchCard({ person }: { person: ApiPerson }) {
   const router = useRouter();
-  const { person, compat } = match;
-  const venue = useVenue(person.venueId);
-  const liked = useIsLiked(person.id);
+  const venue = useVenueSummary(person.venueId);
 
   return (
-    <Pressable style={styles.card} onPress={() => router.push(`/person/${person.id}`)}>
-      <MbtiAvatar type={person.mbti} size={56} rank={compat.rank} />
+    <Pressable style={styles.card} onPress={() => router.push(`/person/${person.userId}`)}>
+      <MbtiAvatar type={person.mbti} size={56} rank={person.compat.rank} />
       <View style={styles.cardBody}>
         <View style={styles.nameRow}>
           <Text style={styles.name}>{person.mbti}</Text>
@@ -38,17 +37,18 @@ function MatchCard({ match }: { match: Match }) {
         </View>
       </View>
       <Pressable
-        style={[styles.likeButton, liked && styles.likeButtonActive]}
-        onPress={() => api.sendLike(person.id)}
+        style={[styles.likeButton, person.liked && styles.likeButtonActive]}
+        onPress={() => void api.sendLike(person.userId)}
       >
-        <Ionicons name={liked ? 'heart' : 'heart-outline'} size={22} color={colors.coral} />
+        <Ionicons name={person.liked ? 'heart' : 'heart-outline'} size={22} color={colors.coral} />
       </Pressable>
     </Pressable>
   );
 }
 
 export default function MatchesScreen() {
-  const matches = useMatches(3);
+  useMatchesPolling();
+  const matches = useMatchesList();
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -67,11 +67,18 @@ export default function MatchesScreen() {
           ))}
         </View>
 
-        <View style={styles.list}>
-          {matches.map((m) => (
-            <MatchCard key={m.person.id} match={m} />
-          ))}
-        </View>
+        {matches.length === 0 ? (
+          <View style={styles.empty}>
+            <Ionicons name="people-outline" size={44} color={colors.gray} />
+            <Text style={styles.emptyText}>いまエリア内に相手がいません</Text>
+          </View>
+        ) : (
+          <View style={styles.list}>
+            {matches.map((m) => (
+              <MatchCard key={m.userId} person={m} />
+            ))}
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -95,6 +102,8 @@ const styles = StyleSheet.create({
   },
   legendDot: { width: 8, height: 8, borderRadius: 4 },
   legendText: { color: colors.textDim, fontSize: 12 },
+  empty: { alignItems: 'center', gap: 12, marginTop: 80 },
+  emptyText: { color: colors.textDim, fontSize: 14 },
   list: { gap: 14, marginTop: 22 },
   card: {
     flexDirection: 'row',

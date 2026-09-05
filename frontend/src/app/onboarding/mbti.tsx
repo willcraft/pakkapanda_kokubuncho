@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { api, useDraft } from '@/api/client';
 import { OnboardingFrame } from '@/components/onboarding/OnboardingFrame';
@@ -9,6 +10,7 @@ import { MBTI_TYPES } from '@/types';
 export default function MbtiScreen() {
   const router = useRouter();
   const draft = useDraft();
+  const [submitting, setSubmitting] = useState(false);
 
   return (
     <OnboardingFrame
@@ -18,11 +20,17 @@ export default function MbtiScreen() {
         '相性のいい人を探すために使います。性別は表示されません。\n診断がまだの方は、外部の診断サイトで調べてから選んでください。'
       }
       showBack
-      ctaLabel="プロフィールを完成する"
-      ctaDisabled={!draft.mbti}
+      ctaLabel={submitting ? '登録中…' : 'プロフィールを完成する'}
+      ctaDisabled={!draft.mbti || submitting}
       onCta={() => {
-        api.completeProfile();
-        router.replace('/(tabs)');
+        setSubmitting(true);
+        api
+          .completeProfile()
+          .then(() => router.replace('/(tabs)'))
+          .catch(() => {
+            Alert.alert('登録に失敗しました', 'APIサーバーに接続できません。起動しているか確認してください。');
+          })
+          .finally(() => setSubmitting(false));
       }}
     >
       <View style={styles.grid}>

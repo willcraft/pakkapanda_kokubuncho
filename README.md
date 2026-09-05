@@ -1,64 +1,57 @@
 # 夜あわせ
 
 仙台・国分町エリア限定の位置情報×MBTIマッチングアプリ。
-アプリは React Native (Expo) 製モック、バックエンドは Cloudflare Workers + Hono + D1。
 仕様は [docs/仕様書.md](docs/仕様書.md)(アプリ)と
 [docs/バックエンド仕様書.md](docs/バックエンド仕様書.md)(API)を参照。
 
-## アプリ(モック)の起動
+## 構成(モノレポ)
 
-```bash
-npm install
-npm start          # Expo Dev Server 起動 → Expo Go で読み取り
+```
+frontend/   # React Native (Expo) アプリ
+backend/    # Cloudflare Workers + Hono + D1 API
+shared/     # 両方で使うドメイン型・相性計算ロジック
+docs/       # 仕様書
 ```
 
-iOSシミュレータ: `npm run ios` / Android: `npm run android`
+## 開発の始め方
 
-## バックエンド
-
-```bash
-cd backend
-npm install
-npm run dev        # wrangler dev(ローカルD1で起動)
-npm test           # APIテスト(vitest + Workers実環境相当)
-```
-
-デプロイ:
+ターミナル1: APIサーバー
 
 ```bash
 cd backend
-npx wrangler d1 create yoawase        # 初回のみ。発行されたIDを wrangler.toml に設定
-npx wrangler d1 migrations apply yoawase --remote
-npm run deploy
+npm install
+npx wrangler d1 migrations apply yoawase --local   # 初回のみ
+npm run dev                                        # http://localhost:8787
 ```
+
+ターミナル2: アプリ
+
+```bash
+cd frontend
+npm install
+npm start          # Expo Dev Server → Expo Go / シミュレータ
+```
+
+- APIの接続先は既定で `http://localhost:8787`(iOSシミュレータ・webはそのままでOK)
+- **実機(Expo Go)で試す場合**は localhost に届かないため、
+  `EXPO_PUBLIC_API_URL=http://<MacのLAN IP>:8787 npm start` で起動するか、
+  デプロイ済みの workers.dev URL を指定する
+- 位置情報はモックとして国分町中心の固定座標を送信する(実GPSは未実装)
+
+## デプロイ(バックエンド)
+
+```bash
+cd backend
+npx wrangler d1 migrations apply yoawase --remote  # 適用済み
+npm run deploy                                     # workers.dev に公開
+```
+
+デプロイ後はアプリを `EXPO_PUBLIC_API_URL=https://yoawase-api.<account>.workers.dev` で起動する。
 
 ## 検証
 
 ```bash
-npm test              # アプリ: 相性ロジック・店舗集計・ストア
-npm run typecheck     # アプリ: 型チェック
-npm run test:backend  # バックエンド: APIテスト
+npm run test:frontend   # ロジック・ストアのユニットテスト
+npm run test:backend    # APIテスト(Workers実環境相当+ローカルD1)
+npm run typecheck       # 両方の型チェック
 ```
-
-## 構成
-
-```
-src/
-  app/            # 画面(expo-router)
-    onboarding/   # 年代→趣味→MBTI の登録3ステップ
-    (tabs)/       # マップ / マッチ / チャット / プロフィール
-    venue/[id]    # 店舗詳細(チェックイン)
-    person/[id]   # 相手プロフィール詳細
-    chat/[id]     # トーク画面
-  api/            # データ入口(backend/ の REST に差し替える層)
-  store/          # zustand ストア(メモリ内・永続化なし)
-  logic/          # 相性スコア・店舗集計(純粋関数)
-  data/           # シードデータ・MBTI性格テキスト・地図スタイル
-  components/     # 共通UI
-```
-
-## モックの前提
-
-- バックエンドなし。データは静的シード+アプリ内メモリ(再起動で消える)
-- 位置情報は固定(国分町エリア内にいる想定)
-- チャットの相手の返信はダミー自動返信

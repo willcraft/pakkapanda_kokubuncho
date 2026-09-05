@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useChats } from '@/api/client';
+import { useChatsList, useChatsPolling } from '@/api/client';
 import { MbtiAvatar } from '@/components/MbtiAvatar';
 import { colors } from '@/theme';
 
@@ -14,7 +14,8 @@ function formatTime(at: number): string {
 
 export default function ChatsScreen() {
   const router = useRouter();
-  const chats = useChats();
+  useChatsPolling();
+  const chats = useChatsList();
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -27,18 +28,18 @@ export default function ChatsScreen() {
       ) : (
         <FlatList
           data={chats}
-          keyExtractor={(item) => item.person.id}
+          keyExtractor={(item) => item.peer.userId}
           contentContainerStyle={styles.list}
           renderItem={({ item }) => (
-            <Pressable style={styles.row} onPress={() => router.push(`/chat/${item.person.id}`)}>
-              <MbtiAvatar type={item.person.mbti} size={48} />
+            <Pressable style={styles.row} onPress={() => router.push(`/chat/${item.peer.userId}`)}>
+              <MbtiAvatar type={item.peer.mbti} size={48} />
               <View style={styles.rowBody}>
-                <Text style={styles.rowName}>{item.person.mbti}</Text>
+                <Text style={styles.rowName}>{item.peer.mbti}</Text>
                 <Text style={styles.rowLast} numberOfLines={1}>
-                  {item.last.text}
+                  {item.lastMessage?.text ?? 'チャットができるようになりました'}
                 </Text>
               </View>
-              <Text style={styles.rowTime}>{formatTime(item.last.at)}</Text>
+              {item.lastMessage && <Text style={styles.rowTime}>{formatTime(item.lastMessage.createdAt)}</Text>}
             </Pressable>
           )}
         />

@@ -1,9 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 
+import { useHeartbeat } from '@/api/client';
 import { colors } from '@/theme';
 
 export default function TabLayout() {
+  useHeartbeat();
   return (
     <Tabs
       screenOptions={{

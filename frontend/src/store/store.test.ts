@@ -1,65 +1,64 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import type { ApiMessage, ApiPerson } from '@/api/types';
 import { useAppStore } from '@/store/useAppStore';
 
+function message(id: string): ApiMessage {
+  return { id, text: `msg-${id}`, from: 'me', createdAt: 0 };
+}
+
+function person(userId: string, liked = false): ApiPerson {
+  return {
+    userId,
+    mbti: 'ENFP',
+    ageBand: '30代',
+    hobbies: ['映画'],
+    lat: null,
+    lng: null,
+    venueId: null,
+    compat: { total: 90, rank: 'S' },
+    liked,
+  };
+}
+
 beforeEach(() => {
-  useAppStore.getState().resetForTest();
-  useAppStore.getState().setDraftAge('30代');
-  useAppStore.getState().toggleDraftHobby('映画');
-  useAppStore.getState().setDraftMbti('INFJ');
-  useAppStore.getState().completeProfile();
-});
-
-describe('completeProfile', () => {
-  it('draft から profile を確定する', () => {
-    expect(useAppStore.getState().profile).toEqual({ ageBand: '30代', hobbies: ['映画'], mbti: 'INFJ' });
+  useAppStore.setState({
+    draft: { hobbies: [] },
+    matches: [],
+    nearby: [],
+    messages: {},
   });
 });
 
-describe('checkIn', () => {
-  it('チェックインすると店が切り替わる(同時に1店舗のみ)', () => {
+describe('draft', () => {
+  it('趣味の選択をトグルできる', () => {
     const s = useAppStore.getState();
-    s.checkIn('v-cielo');
-    expect(useAppStore.getState().myVenueId).toBe('v-cielo');
-    s.checkIn('v-noir');
-    expect(useAppStore.getState().myVenueId).toBe('v-noir');
-  });
-  it('checkOut で解除される', () => {
-    useAppStore.getState().checkIn('v-cielo');
-    useAppStore.getState().checkOut();
-    expect(useAppStore.getState().myVenueId).toBeNull();
-    expect(useAppStore.getState().myCheckedInAt).toBeNull();
+    s.toggleDraftHobby('映画');
+    s.toggleDraftHobby('旅行');
+    expect(useAppStore.getState().draft.hobbies).toEqual(['映画', '旅行']);
+    useAppStore.getState().toggleDraftHobby('映画');
+    expect(useAppStore.getState().draft.hobbies).toEqual(['旅行']);
   });
 });
 
-describe('sendLike', () => {
-  it('いいねでチャットが解禁され system メッセージが入る', () => {
-    useAppStore.getState().sendLike('p1');
+describe('appendMessages', () => {
+  it('既知IDのメッセージは重複追加されない', () => {
+    const s = useAppStore.getState();
+    s.setMessages('p1', [message('a')]);
+    s.appendMessages('p1', [message('a'), message('b')]);
+    expect(useAppStore.getState().messages['p1'].map((m) => m.id)).toEqual(['a', 'b']);
+  });
+});
+
+describe('markLiked', () => {
+  it('matches と nearby の該当ユーザーの liked が true になる', () => {
+    const s = useAppStore.getState();
+    s.setMatches([person('p1'), person('p2')]);
+    s.setNearby([person('p1')]);
+    s.markLiked('p1');
     const state = useAppStore.getState();
-    expect(state.likedIds).toContain('p1');
-    expect(state.chats['p1']).toHaveLength(1);
-    expect(state.chats['p1'][0].from).toBe('system');
-    expect(state.chats['p1'][0].text).toBe('いいねが届いたので、チャットができるようになりました');
-  });
-  it('二重いいねでメッセージは増えない', () => {
-    useAppStore.getState().sendLike('p1');
-    useAppStore.getState().sendLike('p1');
-    expect(useAppStore.getState().chats['p1']).toHaveLength(1);
-  });
-});
-
-describe('sendMessage', () => {
-  it('自分のメッセージが積まれる', () => {
-    useAppStore.getState().sendLike('p1');
-    useAppStore.getState().sendMessage('p1', 'こんばんは');
-    const msgs = useAppStore.getState().chats['p1'];
-    expect(msgs.at(-1)?.from).toBe('me');
-    expect(msgs.at(-1)?.text).toBe('こんばんは');
-  });
-  it('receiveReply で相手の定型返信が積まれる', () => {
-    useAppStore.getState().sendLike('p1');
-    useAppStore.getState().sendMessage('p1', 'こんばんは');
-    useAppStore.getState().receiveReply('p1');
-    expect(useAppStore.getState().chats['p1'].at(-1)?.from).toBe('them');
+    expect(state.matches.find((p) => p.userId === 'p1')?.liked).toBe(true);
+    expect(state.matches.find((p) => p.userId === 'p2')?.liked).toBe(false);
+    expect(state.nearby[0].liked).toBe(true);
   });
 });

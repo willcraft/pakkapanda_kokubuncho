@@ -3,37 +3,53 @@ import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useMatches, useMyCheckin, useMyProfile, usePeople, useVenues } from '@/api/client';
+import {
+  useHomePolling,
+  useMatchesList,
+  useMyCheckin,
+  useNearby,
+  useVenueSummaries,
+  useVenueSummary,
+} from '@/api/client';
 import { MbtiAvatar } from '@/components/MbtiAvatar';
 import { VenueMap } from '@/components/map/VenueMap';
 import type { VenuePinData } from '@/components/map/pins';
-import { venueMbtiCharacter, venueMembers } from '@/logic/venueStats';
 import { colors } from '@/theme';
+import type { Person } from '@/types';
 
 export default function MapScreen() {
   const router = useRouter();
-  const venues = useVenues();
-  const people = usePeople();
-  const profile = useMyProfile();
-  const { venue: myVenue } = useMyCheckin();
-  const matches = useMatches(3);
+  useHomePolling();
 
-  const walkers = people.filter((p) => p.venueId === null);
+  const venues = useVenueSummaries();
+  const nearby = useNearby();
+  const matches = useMatchesList();
+  const myCheckin = useMyCheckin();
+  const myVenue = useVenueSummary(myCheckin?.venueId);
 
-  const venuePins: VenuePinData[] = venues.map((venue) => {
-    const members = venueMembers(people, venue.id);
-    const isMine = myVenue?.id === venue.id;
-    // 自分のチェックインも人数・MBTI分布に即時反映する(仕様4.5)
-    return {
-      venue,
-      count: members.length + (isMine ? 1 : 0),
-      character: venueMbtiCharacter(
-        isMine && profile
-          ? [...members, { ...members[0], id: 'me', mbti: profile.mbti } as (typeof members)[number]]
-          : members,
-      ),
-    };
-  });
+  const venuePins: VenuePinData[] = venues.map((v) => ({
+    venue: {
+      id: v.id,
+      name: v.name,
+      category: v.category,
+      coord: { latitude: v.lat, longitude: v.lng },
+      distanceM: v.distanceM ?? 0,
+    },
+    count: v.memberCount,
+    character: v.mbtiCharacter,
+  }));
+
+  // 街歩き中(venueIdなし)の人だけ座標付きで返る
+  const walkers: Person[] = nearby
+    .filter((p) => p.venueId === null && p.lat !== null && p.lng !== null)
+    .map((p) => ({
+      id: p.userId,
+      mbti: p.mbti,
+      ageBand: p.ageBand,
+      hobbies: p.hobbies,
+      venueId: null,
+      coord: { latitude: p.lat!, longitude: p.lng! },
+    }));
 
   return (
     <View style={styles.container}>
@@ -85,8 +101,8 @@ export default function MapScreen() {
         <Pressable style={styles.banner} onPress={() => router.push('/(tabs)/matches')}>
           <View style={styles.bannerAvatars}>
             {matches.map((m, i) => (
-              <View key={m.person.id} style={[styles.bannerAvatar, { marginLeft: i === 0 ? 0 : -8 }]}>
-                <MbtiAvatar type={m.person.mbti} size={28} />
+              <View key={m.userId} style={[styles.bannerAvatar, { marginLeft: i === 0 ? 0 : -8 }]}>
+                <MbtiAvatar type={m.mbti} size={28} />
               </View>
             ))}
           </View>

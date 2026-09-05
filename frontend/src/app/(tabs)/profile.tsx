@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useMyCheckin, useMyProfile } from '@/api/client';
+import { api, useMyCheckin, useMyProfile, useVenueSummary } from '@/api/client';
 import { HobbyTag } from '@/components/HobbyTag';
 import { MbtiAvatar } from '@/components/MbtiAvatar';
 import { PERSONALITY } from '@/data/personality';
@@ -12,7 +12,8 @@ import { colors } from '@/theme';
 export default function ProfileScreen() {
   const router = useRouter();
   const profile = useMyProfile();
-  const { venue } = useMyCheckin();
+  const myCheckin = useMyCheckin();
+  const venue = useVenueSummary(myCheckin?.venueId);
 
   if (!profile) return null;
 
@@ -56,7 +57,13 @@ export default function ProfileScreen() {
           )}
         </View>
 
-        <Pressable style={styles.editButton} onPress={() => router.push('/onboarding/age')}>
+        <Pressable
+          style={styles.editButton}
+          onPress={() => {
+            api.prefillDraftFromProfile();
+            router.push('/onboarding/age');
+          }}
+        >
           <Ionicons name="create-outline" size={17} color={colors.text} />
           <Text style={styles.editButtonText}>プロフィールを編集</Text>
         </Pressable>

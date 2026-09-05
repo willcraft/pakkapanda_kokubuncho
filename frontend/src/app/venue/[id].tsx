@@ -3,15 +3,13 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { api, useMyProfile, useMyVenueId, usePeople, useVenue } from '@/api/client';
+import { api, useMyCheckin, useVenueDetail } from '@/api/client';
 import { MbtiAvatar } from '@/components/MbtiAvatar';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { RankBadge } from '@/components/RankBadge';
-import { compat } from '@/logic/compatibility';
-import { venueCompatPct, venueMbtiCharacter, venueMembers } from '@/logic/venueStats';
 import { colors } from '@/theme';
 
-function minutesAgo(at?: number): string {
+function minutesAgo(at: number | null): string {
   if (!at) return '';
   const min = Math.max(1, Math.round((Date.now() - at) / 60_000));
   return `${min}分前にチェックイン`;
@@ -20,25 +18,16 @@ function minutesAgo(at?: number): string {
 export default function VenueScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const venue = useVenue(id);
-  const people = usePeople();
-  const profile = useMyProfile();
-  const myVenueId = useMyVenueId();
+  const venue = useVenueDetail(id);
+  const myCheckin = useMyCheckin();
 
-  if (!venue || !profile) return null;
+  if (!venue) return <SafeAreaView style={styles.safe} />;
 
-  const members = venueMembers(people, venue.id);
-  const pct = venueCompatPct(profile, members);
-  const isCheckedIn = myVenueId === venue.id;
-  // 自分のチェックインも人数・MBTI分布に即時反映する(仕様4.5)
-  const character = venueMbtiCharacter(
-    isCheckedIn
-      ? [...members, { ...members[0], id: 'me', mbti: profile.mbti } as (typeof members)[number]]
-      : members,
-  );
-  const memberCount = members.length + (isCheckedIn ? 1 : 0);
-  const visible = members.slice(0, 3);
-  const restCount = members.length - visible.length;
+  const isCheckedIn = myCheckin?.venueId === venue.id;
+  // 自分のチェックインも人数に即時反映する(仕様4.5。サーバー集計は他人のみのため+1)
+  const memberCount = venue.memberCount + (isCheckedIn ? 1 : 0);
+  const visible = venue.members.slice(0, 3);
+  const restCount = venue.members.length - visible.length;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -64,68 +53,67 @@ export default function VenueScreen() {
             <View style={styles.categoryTag}>
               <Text style={styles.categoryTagText}>{venue.category}</Text>
             </View>
-            <Text style={styles.metaText}>国分町エリア内・{venue.distanceM}m</Text>
+            <Text style={styles.metaText}>
+              国分町エリア内{venue.distanceM !== null ? `・${venue.distanceM}m` : ''}
+            </Text>
           </View>
 
           <View style={styles.compatCard}>
             <View style={styles.ring}>
               <Text style={styles.ringText}>
-                {pct !== null ? `${pct}%` : '--'}
+                {venue.compatPct !== null ? `${venue.compatPct}%` : '--'}
               </Text>
             </View>
             <View style={styles.compatTextWrap}>
               <Text style={styles.compatTitle}>
-                {pct !== null ? `このお店との相性 ${pct}%` : 'まだ誰もいません'}
+                {venue.compatPct !== null ? `このお店との相性 ${venue.compatPct}%` : 'まだ誰もいません'}
               </Text>
               <Text style={styles.compatSub}>
-                {pct !== null
+                {venue.compatPct !== null
                   ? '今いるメンバーのMBTIの組み合わせから算出した、今夜のノリの合いやすさです。'
                   : '最初にチェックインして、この店の夜を始めましょう。'}
               </Text>
             </View>
           </View>
 
-          {character && (
+          {venue.mbtiCharacter && (
             <View style={styles.characterRow}>
-              <MbtiAvatar type={character} size={32} />
+              <MbtiAvatar type={venue.mbtiCharacter} size={32} />
               <Text style={styles.characterText}>
-                この店はいま <Text style={styles.characterType}>{character}</Text> な夜
+                この店はいま <Text style={styles.characterType}>{venue.mbtiCharacter}</Text> な夜
               </Text>
             </View>
           )}
 
           <Text style={styles.sectionTitle}>いまお店にいる人・{memberCount}人</Text>
           <View style={styles.memberList}>
-            {visible.map((p) => {
-              const c = compat(profile, p);
-              return (
-                <Pressable
-                  key={p.id}
-                  style={styles.memberRow}
-                  onPress={() => router.push(`/person/${p.id}`)}
-                >
-                  <MbtiAvatar type={p.mbti} size={44} />
-                  <View style={styles.memberInfo}>
-                    <Text style={styles.memberTitle}>
-                      {p.ageBand}・{p.hobbies.slice(0, 2).join('/')}
-                    </Text>
-                    <Text style={styles.memberSub}>{minutesAgo(p.checkedInAt)}</Text>
-                  </View>
-                  <RankBadge rank={c.rank} size={24} />
-                </Pressable>
-              );
-            })}
+            {visible.map((m) => (
+              <Pressable
+                key={m.userId}
+                style={styles.memberRow}
+                onPress={() => router.push(`/person/${m.userId}`)}
+              >
+                <MbtiAvatar type={m.mbti} size={44} />
+                <View style={styles.memberInfo}>
+                  <Text style={styles.memberTitle}>
+                    {m.ageBand}・{m.hobbies.slice(0, 2).join('/')}
+                  </Text>
+                  <Text style={styles.memberSub}>{minutesAgo(m.checkedInAt)}</Text>
+                </View>
+                <RankBadge rank={m.compat.rank} size={24} />
+              </Pressable>
+            ))}
           </View>
           {restCount > 0 && <Text style={styles.restText}>ほか{restCount}人がチェックイン中</Text>}
         </ScrollView>
 
         <View style={styles.footer}>
           {isCheckedIn ? (
-            <Pressable onPress={() => api.checkOut()}>
+            <Pressable onPress={() => void api.checkOut()}>
               <Text style={styles.checkoutLink}>チェックインを解除する</Text>
             </Pressable>
           ) : (
-            <PrimaryButton label="この店にチェックインする" onPress={() => api.checkIn(venue.id)} />
+            <PrimaryButton label="この店にチェックインする" onPress={() => void api.checkIn(venue.id)} />
           )}
         </View>
       </View>

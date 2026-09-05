@@ -1,17 +1,15 @@
+// サーバーレスポンスのキャッシュ+オンボーディングのドラフト。
+// データの取得・更新は src/api/client.ts が担い、このストアは置き場に徹する。
 import { create } from 'zustand';
 
-import { PEOPLE, VENUES } from '@/data/seed';
-import type { AgeBand, ChatMessage, Hobby, MbtiType, Person, Profile, Venue } from '@/types';
-
-const SYSTEM_UNLOCK_TEXT = 'いいねが届いたので、チャットができるようになりました';
-
-const CANNED_REPLIES = [
-  'いいですね!今度ぜひ話しましょう',
-  'ありがとうございます、嬉しいです!',
-  'そうなんですね!もっと聞きたいです',
-  '今日はこのあとどうされるんですか?',
-  'わかります、それすごく好きです',
-];
+import type {
+  ApiChatRow,
+  ApiMessage,
+  ApiMyCheckin,
+  ApiPerson,
+  ApiVenue,
+} from '@/api/types';
+import type { AgeBand, Hobby, MbtiType, Profile } from '@/types';
 
 interface Draft {
   ageBand?: AgeBand;
@@ -19,49 +17,54 @@ interface Draft {
   mbti?: MbtiType;
 }
 
-let msgSeq = 0;
-const nextMsgId = () => `m${++msgSeq}`;
-
 interface AppState {
+  authLoaded: boolean;
+  userId: string | null;
   profile: Profile | null;
   draft: Draft;
-  people: Person[];
-  venues: Venue[];
-  myVenueId: string | null;
-  myCheckedInAt: number | null;
-  likedIds: string[];
-  chats: Record<string, ChatMessage[]>;
-  replyCount: number;
 
+  venues: ApiVenue[];
+  nearby: ApiPerson[];
+  matches: ApiPerson[];
+  myCheckin: ApiMyCheckin | null;
+  chats: ApiChatRow[];
+  messages: Record<string, ApiMessage[]>;
+
+  setAuthLoaded: (loaded: boolean) => void;
+  setUserId: (userId: string | null) => void;
+  setProfile: (profile: Profile | null) => void;
   setDraftAge: (ageBand: AgeBand) => void;
   toggleDraftHobby: (hobby: Hobby) => void;
   setDraftMbti: (mbti: MbtiType) => void;
-  completeProfile: () => void;
-  checkIn: (venueId: string) => void;
-  checkOut: () => void;
-  sendLike: (personId: string) => void;
-  sendMessage: (personId: string, text: string) => void;
-  receiveReply: (personId: string) => void;
-  resetForTest: () => void;
+  setDraft: (draft: Draft) => void;
+
+  setVenues: (venues: ApiVenue[]) => void;
+  setNearby: (nearby: ApiPerson[]) => void;
+  setMatches: (matches: ApiPerson[]) => void;
+  setMyCheckin: (checkin: ApiMyCheckin | null) => void;
+  setChats: (chats: ApiChatRow[]) => void;
+  setMessages: (peerId: string, messages: ApiMessage[]) => void;
+  appendMessages: (peerId: string, messages: ApiMessage[]) => void;
+  markLiked: (personId: string) => void;
 }
 
-const initialState = () => ({
-  profile: null as Profile | null,
-  draft: { hobbies: [] } as Draft,
-  people: PEOPLE,
-  venues: VENUES,
-  myVenueId: null as string | null,
-  myCheckedInAt: null as number | null,
-  likedIds: [] as string[],
-  chats: {} as Record<string, ChatMessage[]>,
-  replyCount: 0,
-});
+export const useAppStore = create<AppState>((set) => ({
+  authLoaded: false,
+  userId: null,
+  profile: null,
+  draft: { hobbies: [] },
 
-export const useAppStore = create<AppState>((set, get) => ({
-  ...initialState(),
+  venues: [],
+  nearby: [],
+  matches: [],
+  myCheckin: null,
+  chats: [],
+  messages: {},
 
+  setAuthLoaded: (authLoaded) => set({ authLoaded }),
+  setUserId: (userId) => set({ userId }),
+  setProfile: (profile) => set({ profile }),
   setDraftAge: (ageBand) => set((s) => ({ draft: { ...s.draft, ageBand } })),
-
   toggleDraftHobby: (hobby) =>
     set((s) => ({
       draft: {
@@ -71,65 +74,26 @@ export const useAppStore = create<AppState>((set, get) => ({
           : [...s.draft.hobbies, hobby],
       },
     })),
-
   setDraftMbti: (mbti) => set((s) => ({ draft: { ...s.draft, mbti } })),
+  setDraft: (draft) => set({ draft }),
 
-  completeProfile: () => {
-    const { draft } = get();
-    if (!draft.ageBand || !draft.mbti || draft.hobbies.length === 0) return;
-    set({ profile: { ageBand: draft.ageBand, hobbies: draft.hobbies, mbti: draft.mbti } });
-  },
-
-  checkIn: (venueId) => set({ myVenueId: venueId, myCheckedInAt: Date.now() }),
-
-  checkOut: () => set({ myVenueId: null, myCheckedInAt: null }),
-
-  sendLike: (personId) => {
-    const { likedIds, chats } = get();
-    if (likedIds.includes(personId)) return;
-    set({
-      likedIds: [...likedIds, personId],
-      chats: {
-        ...chats,
-        [personId]: chats[personId] ?? [
-          { id: nextMsgId(), personId, from: 'system', text: SYSTEM_UNLOCK_TEXT, at: Date.now() },
-        ],
-      },
-    });
-  },
-
-  sendMessage: (personId, text) => {
-    const trimmed = text.trim();
-    if (!trimmed) return;
+  setVenues: (venues) => set({ venues }),
+  setNearby: (nearby) => set({ nearby }),
+  setMatches: (matches) => set({ matches }),
+  setMyCheckin: (myCheckin) => set({ myCheckin }),
+  setChats: (chats) => set({ chats }),
+  setMessages: (peerId, messages) => set((s) => ({ messages: { ...s.messages, [peerId]: messages } })),
+  appendMessages: (peerId, incoming) =>
+    set((s) => {
+      const existing = s.messages[peerId] ?? [];
+      const known = new Set(existing.map((m) => m.id));
+      const fresh = incoming.filter((m) => !known.has(m.id));
+      if (fresh.length === 0) return s;
+      return { messages: { ...s.messages, [peerId]: [...existing, ...fresh] } };
+    }),
+  markLiked: (personId) =>
     set((s) => ({
-      chats: {
-        ...s.chats,
-        [personId]: [
-          ...(s.chats[personId] ?? []),
-          { id: nextMsgId(), personId, from: 'me', text: trimmed, at: Date.now() },
-        ],
-      },
-    }));
-    setTimeout(() => get().receiveReply(personId), 1500);
-  },
-
-  receiveReply: (personId) =>
-    set((s) => ({
-      replyCount: s.replyCount + 1,
-      chats: {
-        ...s.chats,
-        [personId]: [
-          ...(s.chats[personId] ?? []),
-          {
-            id: nextMsgId(),
-            personId,
-            from: 'them',
-            text: CANNED_REPLIES[s.replyCount % CANNED_REPLIES.length],
-            at: Date.now(),
-          },
-        ],
-      },
+      matches: s.matches.map((p) => (p.userId === personId ? { ...p, liked: true } : p)),
+      nearby: s.nearby.map((p) => (p.userId === personId ? { ...p, liked: true } : p)),
     })),
-
-  resetForTest: () => set(initialState()),
 }));

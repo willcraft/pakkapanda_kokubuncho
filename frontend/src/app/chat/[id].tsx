@@ -13,31 +13,30 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { api, useChatMessages, useCompatWith, usePerson, useVenue } from '@/api/client';
+import {
+  api,
+  useMessages,
+  useMessagesPolling,
+  usePersonDetail,
+  useVenueSummary,
+} from '@/api/client';
+import type { ApiMessage } from '@/api/types';
 import { MbtiAvatar } from '@/components/MbtiAvatar';
 import { colors } from '@/theme';
-import type { ChatMessage } from '@/types';
 
 function formatTime(at: number): string {
   const d = new Date(at);
   return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-function Bubble({ message }: { message: ChatMessage }) {
-  if (message.from === 'system') {
-    return (
-      <View style={styles.systemWrap}>
-        <Text style={styles.systemText}>{message.text}</Text>
-      </View>
-    );
-  }
+function Bubble({ message }: { message: ApiMessage }) {
   const mine = message.from === 'me';
   return (
     <View style={[styles.bubbleWrap, mine ? styles.bubbleWrapMe : styles.bubbleWrapThem]}>
       <View style={[styles.bubble, mine ? styles.bubbleMe : styles.bubbleThem]}>
         <Text style={[styles.bubbleText, mine && styles.bubbleTextMe]}>{message.text}</Text>
       </View>
-      <Text style={styles.time}>{formatTime(message.at)}</Text>
+      <Text style={styles.time}>{formatTime(message.createdAt)}</Text>
     </View>
   );
 }
@@ -45,18 +44,16 @@ function Bubble({ message }: { message: ChatMessage }) {
 export default function ChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const person = usePerson(id);
-  const compat = useCompatWith(id);
-  const venue = useVenue(person?.venueId);
-  const messages = useChatMessages(id);
+  const { person } = usePersonDetail(id);
+  const venue = useVenueSummary(person?.venueId);
+  useMessagesPolling(id);
+  const messages = useMessages(id);
   const [text, setText] = useState('');
   const listRef = useRef<FlatList>(null);
 
-  if (!person || !compat) return null;
-
   const send = () => {
     if (!text.trim()) return;
-    api.sendMessage(person.id, text);
+    void api.sendMessage(id, text);
     setText('');
   };
 
@@ -66,14 +63,18 @@ export default function ChatScreen() {
         <Pressable style={styles.back} onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={20} color={colors.text} />
         </Pressable>
-        <MbtiAvatar type={person.mbti} size={40} />
-        <View style={styles.headerText}>
-          <Text style={styles.headerName}>{person.mbti}</Text>
-          <Text style={styles.headerSub}>
-            相性 {compat.rank}
-            {venue ? `・${venue.name}` : ''}
-          </Text>
-        </View>
+        {person && (
+          <>
+            <MbtiAvatar type={person.mbti} size={40} />
+            <View style={styles.headerText}>
+              <Text style={styles.headerName}>{person.mbti}</Text>
+              <Text style={styles.headerSub}>
+                相性 {person.compat.rank}
+                {venue ? `・${venue.name}` : ''}
+              </Text>
+            </View>
+          </>
+        )}
       </View>
 
       <KeyboardAvoidingView
@@ -86,6 +87,13 @@ export default function ChatScreen() {
           data={messages}
           keyExtractor={(m) => m.id}
           contentContainerStyle={styles.list}
+          ListHeaderComponent={
+            <View style={styles.systemWrap}>
+              <Text style={styles.systemText}>
+                いいねが届いたので、チャットができるようになりました
+              </Text>
+            </View>
+          }
           renderItem={({ item }) => <Bubble message={item} />}
           onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
         />
