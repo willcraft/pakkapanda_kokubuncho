@@ -4,7 +4,7 @@ import type { ApiMessage, ApiPerson } from '@/api/types';
 import { useAppStore } from '@/store/useAppStore';
 
 function message(id: string): ApiMessage {
-  return { id, text: `msg-${id}`, from: 'me', createdAt: 0 };
+  return { id, text: `msg-${id}`, from: 'me', kind: 'text', createdAt: 0 };
 }
 
 function person(userId: string, liked = false): ApiPerson {

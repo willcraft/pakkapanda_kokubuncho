@@ -31,6 +31,8 @@ interface AppState {
   messages: Record<string, ApiMessage[]>;
   /** サーバーに最後に報告した自分の位置(マップの自分ピン表示に使う) */
   myLocation: { latitude: number; longitude: number } | null;
+  /** peerId → 既読済み最終メッセージID(未読バッジ用。メモリ内のみ) */
+  readMarks: Record<string, string>;
 
   setAuthLoaded: (loaded: boolean) => void;
   setUserId: (userId: string | null) => void;
@@ -45,6 +47,7 @@ interface AppState {
   setMatches: (matches: ApiPerson[]) => void;
   setMyCheckin: (checkin: ApiMyCheckin | null) => void;
   setMyLocation: (loc: { latitude: number; longitude: number } | null) => void;
+  markRead: (peerId: string, messageId: string) => void;
   setChats: (chats: ApiChatRow[]) => void;
   setMessages: (peerId: string, messages: ApiMessage[]) => void;
   appendMessages: (peerId: string, messages: ApiMessage[]) => void;
@@ -64,6 +67,7 @@ export const useAppStore = create<AppState>((set) => ({
   chats: [],
   messages: {},
   myLocation: null,
+  readMarks: {},
 
   setAuthLoaded: (authLoaded) => set({ authLoaded }),
   setUserId: (userId) => set({ userId }),
@@ -86,6 +90,12 @@ export const useAppStore = create<AppState>((set) => ({
   setMatches: (matches) => set({ matches }),
   setMyCheckin: (myCheckin) => set({ myCheckin }),
   setMyLocation: (myLocation) => set({ myLocation }),
+  markRead: (peerId, messageId) =>
+    set((s) =>
+      (s.readMarks[peerId] ?? '') >= messageId
+        ? s
+        : { readMarks: { ...s.readMarks, [peerId]: messageId } },
+    ),
   setChats: (chats) => set({ chats }),
   setMessages: (peerId, messages) => set((s) => ({ messages: { ...s.messages, [peerId]: messages } })),
   appendMessages: (peerId, incoming) =>

@@ -48,6 +48,7 @@ export const messages = sqliteTable('messages', {
   fromUser: text('from_user').notNull().references(() => users.id),
   toUser: text('to_user').notNull().references(() => users.id),
   text: text('text').notNull(),
+  kind: text('kind').notNull().default('text'), // 'text' | 'like'(いいね通知)
   createdAt: integer('created_at').notNull(),
 });
 

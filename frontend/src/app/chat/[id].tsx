@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
   api,
+  useMarkRead,
   useMessages,
   useMessagesPolling,
   usePersonDetail,
@@ -31,6 +32,18 @@ function formatTime(at: number): string {
 
 function Bubble({ message }: { message: ApiMessage }) {
   const mine = message.from === 'me';
+  if (message.kind === 'like') {
+    return (
+      <View style={styles.systemWrap}>
+        <Text style={styles.likeHeart}>♡</Text>
+        <Text style={styles.systemText}>
+          {mine
+            ? 'いいねを送りました。チャットができるようになりました'
+            : 'いいねが届きました。チャットができるようになりました'}
+        </Text>
+      </View>
+    );
+  }
   return (
     <View style={[styles.bubbleWrap, mine ? styles.bubbleWrapMe : styles.bubbleWrapThem]}>
       <View style={[styles.bubble, mine ? styles.bubbleMe : styles.bubbleThem]}>
@@ -48,6 +61,7 @@ export default function ChatScreen() {
   const venue = useVenueSummary(person?.venueId);
   useMessagesPolling(id);
   const messages = useMessages(id);
+  useMarkRead(id, messages);
   const [text, setText] = useState('');
   const listRef = useRef<FlatList>(null);
 
@@ -87,13 +101,6 @@ export default function ChatScreen() {
           data={messages}
           keyExtractor={(m) => m.id}
           contentContainerStyle={styles.list}
-          ListHeaderComponent={
-            <View style={styles.systemWrap}>
-              <Text style={styles.systemText}>
-                いいねが届いたので、チャットができるようになりました
-              </Text>
-            </View>
-          }
           renderItem={({ item }) => <Bubble message={item} />}
           onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
         />
@@ -153,6 +160,7 @@ const styles = StyleSheet.create({
     maxWidth: '90%',
   },
   systemText: { color: colors.textDim, fontSize: 12, textAlign: 'center', lineHeight: 18 },
+  likeHeart: { color: colors.coral, fontSize: 20, textAlign: 'center', marginBottom: 4 },
   bubbleWrap: { marginBottom: 10, maxWidth: '78%' },
   bubbleWrapThem: { alignSelf: 'flex-start' },
   bubbleWrapMe: { alignSelf: 'flex-end', alignItems: 'flex-end' },

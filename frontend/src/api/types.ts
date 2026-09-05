@@ -43,15 +43,24 @@ export interface ApiPerson {
   liked: boolean;
 }
 
+export type MessageKind = 'text' | 'like';
+
 export interface ApiChatRow {
   peer: { userId: string; mbti: MbtiType; ageBand: AgeBand };
-  lastMessage: { id: string; text: string; from: 'me' | 'them'; createdAt: number } | null;
+  lastMessage: {
+    id: string;
+    text: string;
+    from: 'me' | 'them';
+    kind: MessageKind;
+    createdAt: number;
+  } | null;
 }
 
 export interface ApiMessage {
   id: string;
   text: string;
   from: 'me' | 'them';
+  kind: MessageKind;
   createdAt: number;
 }
 

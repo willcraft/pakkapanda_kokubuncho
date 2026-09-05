@@ -56,7 +56,13 @@ chatRoutes.get('/chats', async (c) => {
       return {
         peer: { userId: peer.id, mbti: peer.mbti, ageBand: peer.ageBand },
         lastMessage: last
-          ? { id: last.id, text: last.text, from: last.fromUser === userId ? 'me' : 'them', createdAt: last.createdAt }
+          ? {
+              id: last.id,
+              text: last.text,
+              from: last.fromUser === userId ? 'me' : 'them',
+              kind: last.kind,
+              createdAt: last.createdAt,
+            }
           : null,
         sortKey: last?.id ?? '',
       };
@@ -82,6 +88,7 @@ chatRoutes.get('/chats/:userId/messages', async (c) => {
       id: m.id,
       text: m.text,
       from: m.fromUser === userId ? 'me' : 'them',
+      kind: m.kind,
       createdAt: m.createdAt,
     })),
   );
@@ -99,9 +106,10 @@ chatRoutes.post('/chats/:userId/messages', async (c) => {
     fromUser: userId,
     toUser: peerId,
     text: body.text,
+    kind: 'text',
     createdAt: Date.now(),
   };
   await d.insert(messages).values(message);
 
-  return c.json({ id: message.id, text: message.text, from: 'me', createdAt: message.createdAt });
+  return c.json({ id: message.id, text: message.text, from: 'me', kind: 'text', createdAt: message.createdAt });
 });

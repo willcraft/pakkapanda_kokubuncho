@@ -1,11 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 
-import { useHeartbeat } from '@/api/client';
+import { useChatsBadgePolling, useHeartbeat, useUnreadCount } from '@/api/client';
 import { colors } from '@/theme';
 
 export default function TabLayout() {
   useHeartbeat();
+  useChatsBadgePolling();
+  const unread = useUnreadCount();
   return (
     <Tabs
       screenOptions={{
@@ -36,6 +38,8 @@ export default function TabLayout() {
         name="chats"
         options={{
           title: 'チャット',
+          tabBarBadge: unread > 0 ? unread : undefined,
+          tabBarBadgeStyle: { backgroundColor: colors.coral, color: '#1A0E10', fontWeight: '700' },
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="chatbubble-outline" size={size} color={color} />
           ),

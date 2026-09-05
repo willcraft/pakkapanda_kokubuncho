@@ -1,6 +1,6 @@
 // 画面が使う唯一のデータ入口。バックエンド(Cloudflare Workers + Hono + D1)の
 // REST APIを呼び、結果を zustand ストアにキャッシュする。
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { request, setAuthToken } from '@/api/http';
 import { clearToken, loadToken, saveToken } from '@/api/tokenStore';
@@ -13,6 +13,7 @@ import type {
   ApiVenueDetail,
 } from '@/api/types';
 import { KOKUBUNCHO_CENTER } from '@/data/seed';
+import { countUnreadChats } from '@/logic/unread';
 import { useAppStore } from '@/store/useAppStore';
 import type { Profile } from '@/types';
 
@@ -172,6 +173,25 @@ export function useMatchesPolling(): void {
 
 export function useChatsPolling(): void {
   usePoll(refreshChats, 10_000);
+}
+
+/** タブ全体での未読バッジ用(チャットタブを開いていなくても新着に気づけるように) */
+export function useChatsBadgePolling(): void {
+  const profile = useMyProfile();
+  usePoll(refreshChats, 15_000, !!profile);
+}
+
+export function useUnreadCount(): number {
+  const chats = useAppStore((s) => s.chats);
+  const readMarks = useAppStore((s) => s.readMarks);
+  return useMemo(() => countUnreadChats(chats, readMarks), [chats, readMarks]);
+}
+
+export function useMarkRead(peerId: string, messages: ApiMessage[]): void {
+  useEffect(() => {
+    const last = messages[messages.length - 1];
+    if (last) useAppStore.getState().markRead(peerId, last.id);
+  }, [peerId, messages]);
 }
 
 export function useMessagesPolling(peerId: string): void {

@@ -36,7 +36,13 @@ export default function ChatsScreen() {
               <View style={styles.rowBody}>
                 <Text style={styles.rowName}>{item.peer.mbti}</Text>
                 <Text style={styles.rowLast} numberOfLines={1}>
-                  {item.lastMessage?.text ?? 'チャットができるようになりました'}
+                  {item.lastMessage
+                    ? item.lastMessage.kind === 'like'
+                      ? item.lastMessage.from === 'me'
+                        ? '♡ いいねを送りました'
+                        : '♡ いいねが届きました'
+                      : item.lastMessage.text
+                    : 'チャットができるようになりました'}
                 </Text>
               </View>
               {item.lastMessage && <Text style={styles.rowTime}>{formatTime(item.lastMessage.createdAt)}</Text>}

@@ -12,17 +12,18 @@ async function send(token: string, userId: string, text: string): Promise<Respon
 
 interface ChatRow {
   peer: { userId: string; mbti: string };
-  lastMessage: { id: string; text: string; from: string } | null;
+  lastMessage: { id: string; text: string; from: string; kind: string } | null;
 }
 
 interface Message {
   id: string;
   text: string;
   from: 'me' | 'them';
+  kind: 'text' | 'like';
 }
 
 describe('POST /likes → チャット解禁', () => {
-  it('片方向いいねで双方の GET /chats に会話が現れる', async () => {
+  it('片方向いいねで双方の GET /chats に会話が現れ、いいね通知メッセージが入る', async () => {
     const a = await register();
     const b = await register({ mbti: 'ENFP', hobbies: ['映画'] });
     await like(a.token, b.userId);
@@ -31,7 +32,20 @@ describe('POST /likes → チャット解禁', () => {
     const bChats = (await (await authed(b.token, '/chats')).json()) as ChatRow[];
     expect(aChats.map((r) => r.peer.userId)).toEqual([b.userId]);
     expect(bChats.map((r) => r.peer.userId)).toEqual([a.userId]);
-    expect(aChats[0].lastMessage).toBeNull();
+    // いいねした側から見ると自分発の like メッセージ、受け取った側は相手発
+    expect(aChats[0].lastMessage?.kind).toBe('like');
+    expect(aChats[0].lastMessage?.from).toBe('me');
+    expect(bChats[0].lastMessage?.kind).toBe('like');
+    expect(bChats[0].lastMessage?.from).toBe('them');
+  });
+
+  it('重複いいねで like メッセージは増えない', async () => {
+    const a = await register();
+    const b = await register({ mbti: 'ENFP', hobbies: ['映画'] });
+    await like(a.token, b.userId);
+    await like(a.token, b.userId);
+    const msgs = (await (await authed(a.token, `/chats/${b.userId}/messages`)).json()) as Message[];
+    expect(msgs.filter((m) => m.kind === 'like')).toHaveLength(1);
   });
 
   it('重複いいねは 200(冪等)', async () => {
@@ -72,12 +86,15 @@ describe('メッセージ送受信', () => {
     expect((await send(b.token, a.userId, 'こんばんは!')).status).toBe(200);
 
     const aMsgs = (await (await authed(a.token, `/chats/${b.userId}/messages`)).json()) as Message[];
-    expect(aMsgs.map((m) => [m.from, m.text])).toEqual([
-      ['me', 'こんばんは'],
-      ['them', 'こんばんは!'],
+    // 先頭はいいね通知、以降がテキスト
+    expect(aMsgs.map((m) => [m.kind, m.from])).toEqual([
+      ['like', 'me'],
+      ['text', 'me'],
+      ['text', 'them'],
     ]);
+    expect(aMsgs[1].text).toBe('こんばんは');
     const bMsgs = (await (await authed(b.token, `/chats/${a.userId}/messages`)).json()) as Message[];
-    expect(bMsgs.map((m) => m.from)).toEqual(['them', 'me']);
+    expect(bMsgs.map((m) => m.from)).toEqual(['them', 'them', 'me']);
   });
 
   it('after カーソルで差分のみ取得できる', async () => {
@@ -88,7 +105,7 @@ describe('メッセージ送受信', () => {
     const first = (await (await authed(a.token, `/chats/${b.userId}/messages`)).json()) as Message[];
     await send(a.token, b.userId, '2通目');
     const diff = (await (
-      await authed(a.token, `/chats/${b.userId}/messages?after=${first[0].id}`)
+      await authed(a.token, `/chats/${b.userId}/messages?after=${first.at(-1)!.id}`)
     ).json()) as Message[];
     expect(diff.map((m) => m.text)).toEqual(['2通目']);
   });
