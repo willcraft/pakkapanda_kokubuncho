@@ -1,15 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import MapView, { Circle, Marker } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useMatches, useMyCheckin, useMyProfile, usePeople, useVenues } from '@/api/client';
 import { MbtiAvatar } from '@/components/MbtiAvatar';
-import { AREA_RADIUS_M, KOKUBUNCHO_CENTER } from '@/data/seed';
-import { DARK_MAP_STYLE } from '@/data/mapStyle';
+import { VenueMap } from '@/components/map/VenueMap';
+import type { VenuePinData } from '@/components/map/pins';
 import { venueMbtiCharacter, venueMembers } from '@/logic/venueStats';
-import { colors, mbtiColor } from '@/theme';
+import { colors } from '@/theme';
 
 export default function MapScreen() {
   const router = useRouter();
@@ -21,71 +20,29 @@ export default function MapScreen() {
 
   const walkers = people.filter((p) => p.venueId === null);
 
+  const venuePins: VenuePinData[] = venues.map((venue) => {
+    const members = venueMembers(people, venue.id);
+    const isMine = myVenue?.id === venue.id;
+    // 自分のチェックインも人数・MBTI分布に即時反映する(仕様4.5)
+    return {
+      venue,
+      count: members.length + (isMine ? 1 : 0),
+      character: venueMbtiCharacter(
+        isMine && profile
+          ? [...members, { ...members[0], id: 'me', mbti: profile.mbti } as (typeof members)[number]]
+          : members,
+      ),
+    };
+  });
+
   return (
     <View style={styles.container}>
-      <MapView
-        style={StyleSheet.absoluteFill}
-        customMapStyle={DARK_MAP_STYLE}
-        initialRegion={{
-          ...KOKUBUNCHO_CENTER,
-          latitudeDelta: 0.004,
-          longitudeDelta: 0.004,
-        }}
-      >
-        <Circle
-          center={KOKUBUNCHO_CENTER}
-          radius={AREA_RADIUS_M}
-          strokeColor="rgba(45, 212, 191, 0.7)"
-          strokeWidth={1.5}
-          fillColor="rgba(45, 212, 191, 0.05)"
-        />
-        {venues.map((venue) => {
-          const members = venueMembers(people, venue.id);
-          const isMine = myVenue?.id === venue.id;
-          // 自分のチェックインも人数・MBTI分布に即時反映する(仕様4.5)
-          const count = members.length + (isMine ? 1 : 0);
-          const character = venueMbtiCharacter(
-            isMine && profile
-              ? [...members, { ...members[0], id: 'me', mbti: profile.mbti } as (typeof members)[number]]
-              : members,
-          );
-          return (
-            <Marker
-              key={venue.id}
-              coordinate={venue.coord}
-              onPress={() => router.push(`/venue/${venue.id}`)}
-            >
-              <View style={styles.venuePinWrap}>
-                <View style={styles.venuePin}>
-                  <Ionicons name="wine" size={18} color="#1A0E10" />
-                  {count > 0 && (
-                    <View style={styles.venueCount}>
-                      <Text style={styles.venueCountText}>{count}</Text>
-                    </View>
-                  )}
-                  {character && (
-                    <View style={styles.venueChar}>
-                      <Text style={styles.venueCharText}>{character}</Text>
-                    </View>
-                  )}
-                </View>
-                <Text style={styles.venueName}>{venue.name}</Text>
-              </View>
-            </Marker>
-          );
-        })}
-        {walkers.map((person) => (
-          <Marker
-            key={person.id}
-            coordinate={person.coord}
-            onPress={() => router.push(`/person/${person.id}`)}
-          >
-            <View style={[styles.personPin, { borderColor: mbtiColor(person.mbti) }]}>
-              <Text style={[styles.personPinText, { color: colors.text }]}>{person.mbti}</Text>
-            </View>
-          </Marker>
-        ))}
-      </MapView>
+      <VenueMap
+        venuePins={venuePins}
+        walkers={walkers}
+        onPressVenue={(id) => router.push(`/venue/${id}`)}
+        onPressPerson={(id) => router.push(`/person/${id}`)}
+      />
 
       <SafeAreaView style={styles.overlay} pointerEvents="box-none">
         <View style={styles.header} pointerEvents="box-none">
@@ -224,58 +181,4 @@ const styles = StyleSheet.create({
   bannerTextWrap: { flex: 1 },
   bannerTitle: { color: colors.text, fontSize: 15, fontWeight: '700' },
   bannerSub: { color: colors.textDim, fontSize: 12, marginTop: 2 },
-  venuePinWrap: { alignItems: 'center' },
-  venuePin: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: colors.coral,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  venueCount: {
-    position: 'absolute',
-    top: -6,
-    right: -6,
-    minWidth: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: colors.bg,
-    borderColor: colors.coral,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-  },
-  venueCountText: { color: colors.text, fontSize: 11, fontWeight: '700' },
-  venueChar: {
-    position: 'absolute',
-    bottom: -8,
-    alignSelf: 'center',
-    backgroundColor: colors.bg,
-    borderColor: colors.teal,
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-  },
-  venueCharText: { color: colors.teal, fontSize: 8, fontWeight: '800' },
-  venueName: {
-    color: colors.text,
-    fontSize: 10,
-    fontWeight: '600',
-    marginTop: 2,
-    textShadowColor: colors.bg,
-    textShadowRadius: 4,
-  },
-  personPin: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 2,
-    backgroundColor: 'rgba(11, 14, 20, 0.85)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  personPinText: { fontSize: 10, fontWeight: '700' },
 });
