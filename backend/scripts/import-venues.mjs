@@ -40,6 +40,22 @@ function distanceM(lat, lng) {
   return 2 * 6371000 * Math.asin(Math.sqrt(s));
 }
 
+// wrangler dev 起動中のローカルD1への外部書き込みは、devサーバー側の状態で
+// 上書きされて消えることがあるため中止する
+if (!remote) {
+  try {
+    const health = await fetch('http://localhost:8787/health', { signal: AbortSignal.timeout(1500) });
+    if (health.ok) {
+      console.error(
+        'エラー: wrangler dev が起動中です。ローカルへのインポートは dev サーバーを停止(Ctrl+C)してから実行してください。',
+      );
+      process.exit(1);
+    }
+  } catch {
+    // 接続できない = devサーバー停止中 → OK
+  }
+}
+
 const query = `[out:json][timeout:25];nwr(around:${RADIUS},${CENTER.lat},${CENTER.lng})[amenity~"^(bar|pub|restaurant|cafe|nightclub)$"];out center 500;`;
 const res = await fetch('https://overpass-api.de/api/interpreter', {
   method: 'POST',
