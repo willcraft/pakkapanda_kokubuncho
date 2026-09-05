@@ -1,8 +1,9 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { api, useDraft } from '@/api/client';
+import { showAlert } from '@/utils/alert';
 import { OnboardingFrame } from '@/components/onboarding/OnboardingFrame';
 import { colors } from '@/theme';
 import { MBTI_TYPES } from '@/types';
@@ -27,8 +28,11 @@ export default function MbtiScreen() {
         api
           .completeProfile()
           .then(() => router.replace('/(tabs)'))
-          .catch(() => {
-            Alert.alert('登録に失敗しました', 'APIサーバーに接続できません。起動しているか確認してください。');
+          .catch((e: Error) => {
+            showAlert(
+              '登録に失敗しました',
+              `${e.message}\nAPIサーバー(EXPO_PUBLIC_API_URL)に接続できるか確認してください。`,
+            );
           })
           .finally(() => setSubmitting(false));
       }}

@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { cors } from 'hono/cors';
 
 import { authMiddleware } from './lib/auth';
 import { ApiError } from './lib/errors';
@@ -18,6 +19,17 @@ export interface Env {
 export type AppEnv = { Bindings: Env; Variables: { userId: string } };
 
 const app = new Hono<AppEnv>();
+
+// web版モック(Expo web)の開発用。ネイティブアプリはCORSの対象外。
+app.use(
+  '*',
+  cors({
+    origin: (origin) =>
+      origin && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin) ? origin : '',
+    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['content-type', 'authorization'],
+  }),
+);
 
 app.get('/health', (c) => c.json({ ok: true }));
 app.route('/', authRoutes);

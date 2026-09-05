@@ -22,15 +22,31 @@ interface RequestOptions {
   body?: unknown;
 }
 
+const TIMEOUT_MS = 10_000;
+
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    method: options.method ?? 'GET',
-    headers: {
-      'content-type': 'application/json',
-      ...(authToken ? { authorization: `Bearer ${authToken}` } : {}),
-    },
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
-  });
+  // 到達できないホストへのfetchは無期限にハングし得るため、必ずタイムアウトさせる
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      method: options.method ?? 'GET',
+      headers: {
+        'content-type': 'application/json',
+        ...(authToken ? { authorization: `Bearer ${authToken}` } : {}),
+      },
+      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      signal: controller.signal,
+    });
+  } catch (e) {
+    if ((e as Error).name === 'AbortError') {
+      throw new ApiRequestError('TIMEOUT', 'サーバーに接続できません(タイムアウト)', 0);
+    }
+    throw new ApiRequestError('NETWORK', 'サーバーに接続できません', 0);
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (!res.ok) {
     let code = 'INTERNAL';
