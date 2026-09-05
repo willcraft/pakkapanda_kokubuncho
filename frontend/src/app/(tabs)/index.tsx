@@ -69,9 +69,9 @@ export default function MapScreen() {
         <View style={styles.header} pointerEvents="box-none">
           <View style={styles.logoRow}>
             <View style={styles.logoMark}>
-              <Text style={styles.logoMarkText}>夜</Text>
+              <Text style={styles.logoMarkText}>T</Text>
             </View>
-            <Text style={styles.logoText}>夜あわせ</Text>
+            <Text style={styles.logoText}>TypeSync</Text>
           </View>
           <View style={styles.areaBadge}>
             <Text style={styles.areaBadgeText}>国分町エリア</Text>
