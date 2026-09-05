@@ -3,10 +3,11 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { api, useMyCheckin, useVenueDetail } from '@/api/client';
+import { api, useMyCheckin, useMyProfile, useVenueDetail } from '@/api/client';
 import { MbtiAvatar } from '@/components/MbtiAvatar';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { RankBadge } from '@/components/RankBadge';
+import { venueMbtiCharacter } from '@/logic/venueStats';
 import { colors } from '@/theme';
 
 function minutesAgo(at: number | null): string {
@@ -20,12 +21,18 @@ export default function VenueScreen() {
   const router = useRouter();
   const venue = useVenueDetail(id);
   const myCheckin = useMyCheckin();
+  const profile = useMyProfile();
 
   if (!venue) return <SafeAreaView style={styles.safe} />;
 
   const isCheckedIn = myCheckin?.venueId === venue.id;
-  // 自分のチェックインも人数に即時反映する(仕様4.5。サーバー集計は他人のみのため+1)
+  // サーバーの集計(memberCount / mbtiCharacter / members)は「他の人」のみ。
+  // 自分のチェックインは表示側で即時反映する(仕様4.5)
   const memberCount = venue.memberCount + (isCheckedIn ? 1 : 0);
+  const character =
+    isCheckedIn && profile
+      ? venueMbtiCharacter([...venue.members, { mbti: profile.mbti }])
+      : venue.mbtiCharacter;
   const visible = venue.members.slice(0, 3);
   const restCount = venue.members.length - visible.length;
 
@@ -66,27 +73,44 @@ export default function VenueScreen() {
             </View>
             <View style={styles.compatTextWrap}>
               <Text style={styles.compatTitle}>
-                {venue.compatPct !== null ? `このお店との相性 ${venue.compatPct}%` : 'まだ誰もいません'}
+                {venue.compatPct !== null
+                  ? `このお店との相性 ${venue.compatPct}%`
+                  : isCheckedIn
+                    ? 'いまはあなただけがいます'
+                    : 'まだ誰もいません'}
               </Text>
               <Text style={styles.compatSub}>
                 {venue.compatPct !== null
                   ? '今いるメンバーのMBTIの組み合わせから算出した、今夜のノリの合いやすさです。'
-                  : '最初にチェックインして、この店の夜を始めましょう。'}
+                  : isCheckedIn
+                    ? '他の人がチェックインすると、今夜のノリの合いやすさが表示されます。'
+                    : '最初にチェックインして、この店の夜を始めましょう。'}
               </Text>
             </View>
           </View>
 
-          {venue.mbtiCharacter && (
+          {character && (
             <View style={styles.characterRow}>
-              <MbtiAvatar type={venue.mbtiCharacter} size={32} />
+              <MbtiAvatar type={character} size={32} />
               <Text style={styles.characterText}>
-                この店はいま <Text style={styles.characterType}>{venue.mbtiCharacter}</Text> な夜
+                この店はいま <Text style={styles.characterType}>{character}</Text> な夜
               </Text>
             </View>
           )}
 
           <Text style={styles.sectionTitle}>いまお店にいる人・{memberCount}人</Text>
           <View style={styles.memberList}>
+            {isCheckedIn && profile && (
+              <View style={styles.memberRow}>
+                <MbtiAvatar type={profile.mbti} size={44} />
+                <View style={styles.memberInfo}>
+                  <Text style={styles.memberTitle}>
+                    {profile.ageBand}・{profile.hobbies.slice(0, 2).join('/')}
+                  </Text>
+                  <Text style={styles.memberSub}>あなた・チェックイン中</Text>
+                </View>
+              </View>
+            )}
             {visible.map((m) => (
               <Pressable
                 key={m.userId}
