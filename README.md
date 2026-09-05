@@ -38,6 +38,21 @@ npm start          # Expo Dev Server → Expo Go / シミュレータ
   デプロイ済みの workers.dev URL を指定する
 - 位置情報はモックとして国分町中心の固定座標を送信する(実GPSは未実装)
 
+## 店舗データのインポート
+
+国分町周辺の実店舗を OpenStreetMap (Overpass API) から取得して D1 に投入できる。
+手動登録は不要。再実行すると同じ店舗は上書き更新される(架空のシード店舗 v-* は削除される)。
+
+```bash
+cd backend
+npm run import:venues          # ローカルD1へ(中心から近い順60件)
+npm run import:venues:remote   # 本番D1へ
+# 件数・範囲の変更: node scripts/import-venues.mjs --limit=100 --radius=400
+```
+
+店舗データは © OpenStreetMap contributors ([ODbL](https://www.openstreetmap.org/copyright))。
+アプリのマップ画面に出典を表示している。
+
 ## デプロイ(バックエンド)
 
 ```bash

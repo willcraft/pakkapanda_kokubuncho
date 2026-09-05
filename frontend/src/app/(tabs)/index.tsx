@@ -98,6 +98,7 @@ export default function MapScreen() {
 
         <View style={styles.spacer} pointerEvents="none" />
 
+        <Text style={styles.osmCredit}>店舗データ © OpenStreetMap contributors</Text>
         <Pressable style={styles.banner} onPress={() => router.push('/(tabs)/matches')}>
           <View style={styles.bannerAvatars}>
             {matches.map((m, i) => (
@@ -176,6 +177,14 @@ const styles = StyleSheet.create({
   },
   lockChipText: { color: colors.textDim, fontSize: 11 },
   spacer: { flex: 1 },
+  osmCredit: {
+    color: colors.textDim,
+    fontSize: 9,
+    textAlign: 'right',
+    marginBottom: 4,
+    textShadowColor: colors.bg,
+    textShadowRadius: 3,
+  },
   banner: {
     flexDirection: 'row',
     alignItems: 'center',

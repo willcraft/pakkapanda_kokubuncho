@@ -6,7 +6,9 @@
     "dev": "wrangler dev --ip 0.0.0.0",
     "deploy": "wrangler deploy",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "import:venues": "node scripts/import-venues.mjs",
+    "import:venues:remote": "node scripts/import-venues.mjs --remote"
   },
   "dependencies": {
     "drizzle-orm": "^0.44.0",
