@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev --ip 0.0.0.0",
+    "dev": "sh -c 'while true; do wrangler dev --ip 0.0.0.0; echo \"[dev] wrangler dev が終了しました。1秒後に再起動します(止めるには Ctrl+C 連打)\"; sleep 1; done'",
     "deploy": "wrangler deploy",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
