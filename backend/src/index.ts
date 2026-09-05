@@ -6,6 +6,7 @@ import { authRoutes } from './routes/auth';
 import { checkinRoutes } from './routes/checkins';
 import { locationRoutes } from './routes/location';
 import { meRoutes } from './routes/me';
+import { peopleRoutes } from './routes/people';
 import { venueRoutes } from './routes/venues';
 
 export interface Env {
@@ -41,6 +42,7 @@ app.route('/', meRoutes);
 app.route('/', locationRoutes);
 app.route('/', venueRoutes);
 app.route('/', checkinRoutes);
+app.route('/', peopleRoutes);
 
 app.notFound((c) => c.json({ error: { code: 'NOT_FOUND', message: 'not found' } }, 404));
 
