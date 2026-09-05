@@ -3,8 +3,15 @@
 // スタイライズドマップ(デザインPDF準拠のダークな抽象マップ)を描く。
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { PersonPinView, SelfPinView, VenuePinView, type VenuePinData } from '@/components/map/pins';
+import {
+  ClusterPinView,
+  PersonPinView,
+  SelfPinView,
+  VenuePinView,
+  type VenuePinData,
+} from '@/components/map/pins';
 import { KOKUBUNCHO_CENTER } from '@/data/seed';
+import { clusterByGrid } from '@/logic/mapCluster';
 import { colors } from '@/theme';
 import type { Coord, Person } from '@/types';
 
@@ -31,18 +38,22 @@ export function VenueMap({ venuePins, walkers, me, onPressVenue, onPressPerson }
         <View key={`v${p}`} style={[styles.gridV, { left: `${p * 100}%` }]} />
       ))}
       <View style={styles.areaEllipse} />
-      {venuePins.map((pin) => {
-        const pos = toPercent(pin.venue.coord);
-        return (
+      {clusterByGrid(venuePins, (p) => p.venue.coord, LAT_SPAN / 8).map((cluster) =>
+        cluster.items.length === 1 ? (
           <Pressable
-            key={pin.venue.id}
-            style={[styles.pin, pos as object]}
-            onPress={() => onPressVenue(pin.venue.id)}
+            key={cluster.items[0].venue.id}
+            style={[styles.pin, toPercent(cluster.items[0].venue.coord) as object]}
+            onPress={() => onPressVenue(cluster.items[0].venue.id)}
           >
-            <VenuePinView {...pin} />
+            <VenuePinView {...cluster.items[0]} />
           </Pressable>
-        );
-      })}
+        ) : (
+          // web版フォールバックはズーム不可のため、クラスタは件数表示のみ
+          <View key={`cluster-${cluster.key}`} style={[styles.pin, toPercent(cluster.coord) as object]}>
+            <ClusterPinView count={cluster.items.length} />
+          </View>
+        ),
+      )}
       {walkers.map((person) => {
         const pos = toPercent(person.coord);
         return (
