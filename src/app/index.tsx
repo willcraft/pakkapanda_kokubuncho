@@ -1,7 +1,8 @@
 import { Redirect } from 'expo-router';
 
-// プロフィール未登録ならオンボーディングへ。登録済みはタブへ。
-// ゲート本体は onboarding 完了時の遷移と (tabs) 側で担保する(モックのため常に初回はオンボーディング)。
+import { useMyProfile } from '@/api/client';
+
 export default function Index() {
-  return <Redirect href="/onboarding/age" />;
+  const profile = useMyProfile();
+  return profile ? <Redirect href="/(tabs)" /> : <Redirect href="/onboarding/age" />;
 }
