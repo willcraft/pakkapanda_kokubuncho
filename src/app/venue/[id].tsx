@@ -4,7 +4,6 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { api, useMyProfile, useMyVenueId, usePeople, useVenue } from '@/api/client';
-import { HobbyTag } from '@/components/HobbyTag';
 import { MbtiAvatar } from '@/components/MbtiAvatar';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { RankBadge } from '@/components/RankBadge';
@@ -30,8 +29,14 @@ export default function VenueScreen() {
 
   const members = venueMembers(people, venue.id);
   const pct = venueCompatPct(profile, members);
-  const character = venueMbtiCharacter(members);
   const isCheckedIn = myVenueId === venue.id;
+  // 自分のチェックインも人数・MBTI分布に即時反映する(仕様4.5)
+  const character = venueMbtiCharacter(
+    isCheckedIn
+      ? [...members, { ...members[0], id: 'me', mbti: profile.mbti } as (typeof members)[number]]
+      : members,
+  );
+  const memberCount = members.length + (isCheckedIn ? 1 : 0);
   const visible = members.slice(0, 3);
   const restCount = members.length - visible.length;
 
@@ -89,7 +94,7 @@ export default function VenueScreen() {
             </View>
           )}
 
-          <Text style={styles.sectionTitle}>いまお店にいる人・{members.length}人</Text>
+          <Text style={styles.sectionTitle}>いまお店にいる人・{memberCount}人</Text>
           <View style={styles.memberList}>
             {visible.map((p) => {
               const c = compat(profile, p);

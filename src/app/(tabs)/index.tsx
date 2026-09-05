@@ -4,17 +4,18 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import MapView, { Circle, Marker } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useMatches, useMyCheckin, usePeople, useVenues } from '@/api/client';
+import { useMatches, useMyCheckin, useMyProfile, usePeople, useVenues } from '@/api/client';
 import { MbtiAvatar } from '@/components/MbtiAvatar';
 import { AREA_RADIUS_M, KOKUBUNCHO_CENTER } from '@/data/seed';
 import { DARK_MAP_STYLE } from '@/data/mapStyle';
-import { venueMembers } from '@/logic/venueStats';
+import { venueMbtiCharacter, venueMembers } from '@/logic/venueStats';
 import { colors, mbtiColor } from '@/theme';
 
 export default function MapScreen() {
   const router = useRouter();
   const venues = useVenues();
   const people = usePeople();
+  const profile = useMyProfile();
   const { venue: myVenue } = useMyCheckin();
   const matches = useMatches(3);
 
@@ -39,7 +40,15 @@ export default function MapScreen() {
           fillColor="rgba(45, 212, 191, 0.05)"
         />
         {venues.map((venue) => {
-          const count = venueMembers(people, venue.id).length;
+          const members = venueMembers(people, venue.id);
+          const isMine = myVenue?.id === venue.id;
+          // 自分のチェックインも人数・MBTI分布に即時反映する(仕様4.5)
+          const count = members.length + (isMine ? 1 : 0);
+          const character = venueMbtiCharacter(
+            isMine && profile
+              ? [...members, { ...members[0], id: 'me', mbti: profile.mbti } as (typeof members)[number]]
+              : members,
+          );
           return (
             <Marker
               key={venue.id}
@@ -52,6 +61,11 @@ export default function MapScreen() {
                   {count > 0 && (
                     <View style={styles.venueCount}>
                       <Text style={styles.venueCountText}>{count}</Text>
+                    </View>
+                  )}
+                  {character && (
+                    <View style={styles.venueChar}>
+                      <Text style={styles.venueCharText}>{character}</Text>
                     </View>
                   )}
                 </View>
@@ -234,6 +248,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   venueCountText: { color: colors.text, fontSize: 11, fontWeight: '700' },
+  venueChar: {
+    position: 'absolute',
+    bottom: -8,
+    alignSelf: 'center',
+    backgroundColor: colors.bg,
+    borderColor: colors.teal,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
+  venueCharText: { color: colors.teal, fontSize: 8, fontWeight: '800' },
   venueName: {
     color: colors.text,
     fontSize: 10,
