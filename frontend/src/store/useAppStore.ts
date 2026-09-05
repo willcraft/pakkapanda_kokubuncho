@@ -29,6 +29,8 @@ interface AppState {
   myCheckin: ApiMyCheckin | null;
   chats: ApiChatRow[];
   messages: Record<string, ApiMessage[]>;
+  /** サーバーに最後に報告した自分の位置(マップの自分ピン表示に使う) */
+  myLocation: { latitude: number; longitude: number } | null;
 
   setAuthLoaded: (loaded: boolean) => void;
   setUserId: (userId: string | null) => void;
@@ -42,6 +44,7 @@ interface AppState {
   setNearby: (nearby: ApiPerson[]) => void;
   setMatches: (matches: ApiPerson[]) => void;
   setMyCheckin: (checkin: ApiMyCheckin | null) => void;
+  setMyLocation: (loc: { latitude: number; longitude: number } | null) => void;
   setChats: (chats: ApiChatRow[]) => void;
   setMessages: (peerId: string, messages: ApiMessage[]) => void;
   appendMessages: (peerId: string, messages: ApiMessage[]) => void;
@@ -60,6 +63,7 @@ export const useAppStore = create<AppState>((set) => ({
   myCheckin: null,
   chats: [],
   messages: {},
+  myLocation: null,
 
   setAuthLoaded: (authLoaded) => set({ authLoaded }),
   setUserId: (userId) => set({ userId }),
@@ -81,6 +85,7 @@ export const useAppStore = create<AppState>((set) => ({
   setNearby: (nearby) => set({ nearby }),
   setMatches: (matches) => set({ matches }),
   setMyCheckin: (myCheckin) => set({ myCheckin }),
+  setMyLocation: (myLocation) => set({ myLocation }),
   setChats: (chats) => set({ chats }),
   setMessages: (peerId, messages) => set((s) => ({ messages: { ...s.messages, [peerId]: messages } })),
   appendMessages: (peerId, incoming) =>

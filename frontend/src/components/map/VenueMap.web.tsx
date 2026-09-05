@@ -3,7 +3,7 @@
 // スタイライズドマップ(デザインPDF準拠のダークな抽象マップ)を描く。
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { PersonPinView, VenuePinView, type VenuePinData } from '@/components/map/pins';
+import { PersonPinView, SelfPinView, VenuePinView, type VenuePinData } from '@/components/map/pins';
 import { KOKUBUNCHO_CENTER } from '@/data/seed';
 import { colors } from '@/theme';
 import type { Coord, Person } from '@/types';
@@ -21,7 +21,7 @@ function toPercent(coord: Coord): { top: string; left: string } {
 
 const GRID_LINES = [0.2, 0.4, 0.6, 0.8];
 
-export function VenueMap({ venuePins, walkers, onPressVenue, onPressPerson }: VenueMapProps) {
+export function VenueMap({ venuePins, walkers, me, onPressVenue, onPressPerson }: VenueMapProps) {
   return (
     <View style={styles.container}>
       {GRID_LINES.map((p) => (
@@ -55,6 +55,11 @@ export function VenueMap({ venuePins, walkers, onPressVenue, onPressPerson }: Ve
           </Pressable>
         );
       })}
+      {me && (
+        <View style={[styles.pin, toPercent(me.coord) as object]}>
+          <SelfPinView mbti={me.mbti} />
+        </View>
+      )}
     </View>
   );
 }

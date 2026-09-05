@@ -7,6 +7,8 @@ import {
   useHomePolling,
   useMatchesList,
   useMyCheckin,
+  useMyLocation,
+  useMyProfile,
   useNearby,
   useVenueSummaries,
   useVenueSummary,
@@ -26,6 +28,8 @@ export default function MapScreen() {
   const matches = useMatchesList();
   const myCheckin = useMyCheckin();
   const myVenue = useVenueSummary(myCheckin?.venueId);
+  const profile = useMyProfile();
+  const myLocation = useMyLocation();
 
   const venuePins: VenuePinData[] = venues.map((v) => ({
     venue: {
@@ -56,6 +60,7 @@ export default function MapScreen() {
       <VenueMap
         venuePins={venuePins}
         walkers={walkers}
+        me={profile && myLocation ? { coord: myLocation, mbti: profile.mbti } : null}
         onPressVenue={(id) => router.push(`/venue/${id}`)}
         onPressPerson={(id) => router.push(`/person/${id}`)}
       />

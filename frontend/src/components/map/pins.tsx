@@ -39,6 +39,19 @@ export function PersonPinView({ person }: { person: Person }) {
   );
 }
 
+export function SelfPinView({ mbti }: { mbti: MbtiType }) {
+  return (
+    <View style={styles.selfPinWrap}>
+      <View style={[styles.selfPin, { backgroundColor: mbtiColor(mbti) }]}>
+        <Text style={styles.selfPinText}>{mbti}</Text>
+      </View>
+      <View style={styles.selfLabel}>
+        <Text style={styles.selfLabelText}>あなた</Text>
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   venuePinWrap: { alignItems: 'center' },
   venuePin: {
@@ -94,4 +107,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   personPinText: { fontSize: 10, fontWeight: '700', color: colors.text },
+  selfPinWrap: { alignItems: 'center' },
+  selfPin: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 3,
+    borderColor: colors.coral,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.coral,
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  selfPinText: { fontSize: 11, fontWeight: '800', color: '#FFFFFF' },
+  selfLabel: {
+    backgroundColor: colors.coral,
+    borderRadius: 7,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    marginTop: 3,
+  },
+  selfLabelText: { color: '#1A0E10', fontSize: 9, fontWeight: '800' },
 });

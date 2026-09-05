@@ -3,19 +3,20 @@
 import { StyleSheet } from 'react-native';
 import MapView, { Circle, Marker } from 'react-native-maps';
 
-import { PersonPinView, VenuePinView, type VenuePinData } from '@/components/map/pins';
+import { PersonPinView, SelfPinView, VenuePinView, type VenuePinData } from '@/components/map/pins';
 import { AREA_RADIUS_M, KOKUBUNCHO_CENTER } from '@/data/seed';
 import { DARK_MAP_STYLE } from '@/data/mapStyle';
-import type { Person } from '@/types';
+import type { Coord, MbtiType, Person } from '@/types';
 
 export interface VenueMapProps {
   venuePins: VenuePinData[];
   walkers: Person[];
+  me: { coord: Coord; mbti: MbtiType } | null;
   onPressVenue: (venueId: string) => void;
   onPressPerson: (personId: string) => void;
 }
 
-export function VenueMap({ venuePins, walkers, onPressVenue, onPressPerson }: VenueMapProps) {
+export function VenueMap({ venuePins, walkers, me, onPressVenue, onPressPerson }: VenueMapProps) {
   return (
     <MapView
       style={StyleSheet.absoluteFill}
@@ -47,6 +48,11 @@ export function VenueMap({ venuePins, walkers, onPressVenue, onPressPerson }: Ve
           <PersonPinView person={person} />
         </Marker>
       ))}
+      {me && (
+        <Marker coordinate={me.coord} zIndex={10}>
+          <SelfPinView mbti={me.mbti} />
+        </Marker>
+      )}
     </MapView>
   );
 }

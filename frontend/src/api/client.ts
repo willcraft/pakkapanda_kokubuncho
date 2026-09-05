@@ -119,13 +119,21 @@ export function useBootstrap(): void {
  */
 export function useHeartbeat(): void {
   const profile = useMyProfile();
-  usePoll(() => request('/location', { method: 'POST', body: KOKUBUNCHO_CENTER_LATLNG }), 60_000, !!profile);
+  usePoll(sendHeartbeat, 60_000, !!profile);
 }
 
 const KOKUBUNCHO_CENTER_LATLNG = {
   lat: KOKUBUNCHO_CENTER.latitude,
   lng: KOKUBUNCHO_CENTER.longitude,
 };
+
+/** 心拍を送り、成功したら「サーバーが知っている自分の位置」としてストアに記録する */
+async function sendHeartbeat(): Promise<void> {
+  await request('/location', { method: 'POST', body: KOKUBUNCHO_CENTER_LATLNG });
+  useAppStore.getState().setMyLocation({ ...KOKUBUNCHO_CENTER });
+}
+
+export const useMyLocation = () => useAppStore((s) => s.myLocation);
 
 // ---- 画面ごとの詳細取得 ------------------------------------------------------
 
@@ -206,7 +214,7 @@ export const api = {
     }
     s.setProfile(profile);
     // すぐエリア内として表示されるように心拍を1回送る
-    await request('/location', { method: 'POST', body: KOKUBUNCHO_CENTER_LATLNG }).catch(() => {});
+    await sendHeartbeat().catch(() => {});
   },
 
   checkIn: async (venueId: string): Promise<void> => {
