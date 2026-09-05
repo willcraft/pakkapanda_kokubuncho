@@ -1,0 +1,11 @@
+# 夜あわせ API (Cloudflare Workers + D1)
+name = "yoawase-api"
+main = "src/index.ts"
+compatibility_date = "2025-09-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "yoawase"
+# デプロイ前に `wrangler d1 create yoawase` で発行されたIDに差し替える
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
