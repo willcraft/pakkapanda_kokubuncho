@@ -39,8 +39,10 @@ export async function authed(
   });
 }
 
+import area from '../../shared/area.json';
+
 /** エリア内(国分町中心)の座標 */
-export const IN_AREA = { lat: 38.261, lng: 140.8722 };
+export const IN_AREA = { lat: area.lat, lng: area.lng };
 /** エリア外(仙台駅あたり、中心から1km以上) */
 export const OUT_OF_AREA = { lat: 38.2601, lng: 140.8825 };
 

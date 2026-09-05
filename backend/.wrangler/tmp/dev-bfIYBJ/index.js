@@ -12733,11 +12733,19 @@ likeRoutes.post("/likes", async (c) => {
   return c.json({ ok: true });
 });
 
+// ../shared/area.json
+var area_default = {
+  name: "\u56FD\u5206\u753A",
+  lat: 38.2638,
+  lng: 140.8699,
+  radiusM: 300
+};
+
 // src/domain/area.ts
 var AREA = {
-  name: "\u56FD\u5206\u753A",
-  center: { lat: 38.261, lng: 140.8722 },
-  radiusM: 250
+  name: area_default.name,
+  center: { lat: area_default.lat, lng: area_default.lng },
+  radiusM: area_default.radiusM
 };
 var ACTIVE_WINDOW_MS = 10 * 6e4;
 var EARTH_RADIUS_M = 6371e3;

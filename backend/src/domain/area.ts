@@ -1,13 +1,16 @@
 // 国分町エリア定義とプレゼンス判定(docs/バックエンド仕様書.md §4.1)
+// 座標の単一の情報源は shared/area.json
+import area from '../../../shared/area.json';
+
 export interface LatLng {
   lat: number;
   lng: number;
 }
 
 export const AREA = {
-  name: '国分町',
-  center: { lat: 38.261, lng: 140.8722 } satisfies LatLng,
-  radiusM: 250,
+  name: area.name,
+  center: { lat: area.lat, lng: area.lng } satisfies LatLng,
+  radiusM: area.radiusM,
 };
 
 export const ACTIVE_WINDOW_MS = 10 * 60_000;
