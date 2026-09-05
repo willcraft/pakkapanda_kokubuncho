@@ -5,7 +5,6 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "owner": "kokubuncho-hackathon",
     "scheme": "yoawase",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#0B0E14",
@@ -39,6 +38,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "265d3f2e-5f91-4c11-a0e2-98bb0a9de10a"
+      }
     }
   }
 }

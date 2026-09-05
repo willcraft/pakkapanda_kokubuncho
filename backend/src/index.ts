@@ -3,8 +3,10 @@ import { Hono } from 'hono';
 import { authMiddleware } from './lib/auth';
 import { ApiError } from './lib/errors';
 import { authRoutes } from './routes/auth';
+import { checkinRoutes } from './routes/checkins';
 import { locationRoutes } from './routes/location';
 import { meRoutes } from './routes/me';
+import { venueRoutes } from './routes/venues';
 
 export interface Env {
   DB: D1Database;
@@ -37,6 +39,8 @@ for (const path of PROTECTED_PATHS) app.use(path, authMiddleware);
 
 app.route('/', meRoutes);
 app.route('/', locationRoutes);
+app.route('/', venueRoutes);
+app.route('/', checkinRoutes);
 
 app.notFound((c) => c.json({ error: { code: 'NOT_FOUND', message: 'not found' } }, 404));
 
