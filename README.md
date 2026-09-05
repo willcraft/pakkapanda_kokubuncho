@@ -61,7 +61,14 @@ npx wrangler d1 migrations apply yoawase --remote  # 適用済み
 npm run deploy                                     # workers.dev に公開
 ```
 
-デプロイ後はアプリを `EXPO_PUBLIC_API_URL=https://yoawase-api.<account>.workers.dev` で起動する。
+デプロイ済みURL: `https://yoawase-api.yoshitaka-07a.workers.dev`
+
+デプロイ版に接続する場合:
+
+```bash
+cd frontend
+EXPO_PUBLIC_API_URL=https://yoawase-api.yoshitaka-07a.workers.dev npm start
+```
 
 ## 検証
 
