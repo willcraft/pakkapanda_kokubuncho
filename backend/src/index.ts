@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import { authMiddleware } from './lib/auth';
 import { ApiError } from './lib/errors';
 import { authRoutes } from './routes/auth';
+import { locationRoutes } from './routes/location';
 import { meRoutes } from './routes/me';
 
 export interface Env {
@@ -35,6 +36,7 @@ const PROTECTED_PATHS = [
 for (const path of PROTECTED_PATHS) app.use(path, authMiddleware);
 
 app.route('/', meRoutes);
+app.route('/', locationRoutes);
 
 app.notFound((c) => c.json({ error: { code: 'NOT_FOUND', message: 'not found' } }, 404));
 
