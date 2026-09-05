@@ -3,7 +3,9 @@ import { Hono } from 'hono';
 import { authMiddleware } from './lib/auth';
 import { ApiError } from './lib/errors';
 import { authRoutes } from './routes/auth';
+import { chatRoutes } from './routes/chats';
 import { checkinRoutes } from './routes/checkins';
+import { likeRoutes } from './routes/likes';
 import { locationRoutes } from './routes/location';
 import { meRoutes } from './routes/me';
 import { peopleRoutes } from './routes/people';
@@ -43,6 +45,8 @@ app.route('/', locationRoutes);
 app.route('/', venueRoutes);
 app.route('/', checkinRoutes);
 app.route('/', peopleRoutes);
+app.route('/', likeRoutes);
+app.route('/', chatRoutes);
 
 app.notFound((c) => c.json({ error: { code: 'NOT_FOUND', message: 'not found' } }, 404));
 
