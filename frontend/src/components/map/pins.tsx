@@ -39,15 +39,6 @@ export function PersonPinView({ person }: { person: Person }) {
   );
 }
 
-export function ClusterPinView({ count }: { count: number }) {
-  return (
-    <View style={styles.clusterPin}>
-      <Text style={styles.clusterCount}>{count}</Text>
-      <Text style={styles.clusterUnit}>軒</Text>
-    </View>
-  );
-}
-
 export function SelfPinView({ mbti }: { mbti: MbtiType }) {
   return (
     <View style={styles.selfPinWrap}>
@@ -116,20 +107,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   personPinText: { fontSize: 10, fontWeight: '700', color: colors.text },
-  clusterPin: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'center',
-    minWidth: 46,
-    height: 46,
-    borderRadius: 23,
-    paddingHorizontal: 8,
-    backgroundColor: 'rgba(11, 14, 20, 0.92)',
-    borderWidth: 2,
-    borderColor: colors.coral,
-  },
-  clusterCount: { color: colors.coral, fontSize: 16, fontWeight: '800' },
-  clusterUnit: { color: colors.textDim, fontSize: 10, marginLeft: 1 },
   selfPinWrap: { alignItems: 'center' },
   selfPin: {
     width: 44,
