@@ -1,6 +1,6 @@
 import type { Person } from '@/types';
 
-export { venueCompatPct, venueMbtiCharacter } from '../../shared/venueStats';
+export { venueCompatPct, venueMbtiCharacter } from '../../../shared/venueStats';
 
 export function venueMembers(people: Person[], venueId: string): Person[] {
   return people
