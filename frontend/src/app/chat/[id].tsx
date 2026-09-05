@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
   api,
+  runAction,
   useMarkRead,
   useMessages,
   useMessagesPolling,
@@ -67,7 +68,7 @@ export default function ChatScreen() {
 
   const send = () => {
     if (!text.trim()) return;
-    void api.sendMessage(id, text);
+    runAction(api.sendMessage(id, text));
     setText('');
   };
 

@@ -17,8 +17,19 @@ import { KOKUBUNCHO_CENTER } from '@/data/seed';
 import { countUnreadChats } from '@/logic/unread';
 import { useAppStore } from '@/store/useAppStore';
 import type { Profile } from '@/types';
+import { showAlert } from '@/utils/alert';
 
 const EMPTY_MESSAGES: ApiMessage[] = [];
+
+/**
+ * ボタン操作などの fire-and-forget な API 呼び出し用。
+ * 失敗を未処理のPromise拒否にせず、ユーザーにダイアログで知らせる。
+ */
+export function runAction(promise: Promise<unknown>): void {
+  promise.catch((e: Error) => {
+    showAlert('通信エラー', e.message || 'サーバーに接続できません');
+  });
+}
 
 // ---- ストア購読フック --------------------------------------------------------
 

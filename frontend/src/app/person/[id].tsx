@@ -3,7 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { api, useMyProfile, usePersonDetail, useVenueSummary } from '@/api/client';
+import { api, runAction, useMyProfile, usePersonDetail, useVenueSummary } from '@/api/client';
 import { HobbyTag } from '@/components/HobbyTag';
 import { MbtiAvatar } from '@/components/MbtiAvatar';
 import { PrimaryButton } from '@/components/PrimaryButton';
@@ -92,9 +92,9 @@ export default function PersonScreen() {
         ) : person.liked ? (
           <PrimaryButton label="♡ いいね済み・相手の返事待ち" onPress={() => {}} disabled />
         ) : person.likedMe ? (
-          <PrimaryButton label="♡ いいねを返してマッチする" onPress={() => void onLike()} />
+          <PrimaryButton label="♡ いいねを返してマッチする" onPress={() => runAction(onLike())} />
         ) : (
-          <PrimaryButton label="♡ いいねを送る" onPress={() => void onLike()} />
+          <PrimaryButton label="♡ いいねを送る" onPress={() => runAction(onLike())} />
         )}
         {!(person.liked && person.likedMe) && (
           <Text style={styles.footerCaption}>

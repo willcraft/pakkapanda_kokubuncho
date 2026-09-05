@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { api, useMatchesList, useMatchesPolling, useReceivedLikes, useVenueSummary } from '@/api/client';
+import { api, runAction, useMatchesList, useMatchesPolling, useReceivedLikes, useVenueSummary } from '@/api/client';
 import type { ApiPerson, ApiReceivedLike } from '@/api/types';
 import { HobbyTag } from '@/components/HobbyTag';
 import { MbtiAvatar } from '@/components/MbtiAvatar';
@@ -24,7 +24,7 @@ function ReceivedLikeCard({ person }: { person: ApiReceivedLike }) {
         </View>
         <Text style={styles.receivedHint}>あなたに「いいね」が届いています</Text>
       </View>
-      <Pressable style={styles.returnButton} onPress={() => void api.sendLike(person.userId)}>
+      <Pressable style={styles.returnButton} onPress={() => runAction(api.sendLike(person.userId))}>
         <Text style={styles.returnButtonText}>♡ 返す</Text>
       </Pressable>
     </Pressable>
@@ -57,7 +57,7 @@ function MatchCard({ person }: { person: ApiPerson }) {
       </View>
       <Pressable
         style={[styles.likeButton, person.liked && styles.likeButtonActive]}
-        onPress={() => void api.sendLike(person.userId)}
+        onPress={() => runAction(api.sendLike(person.userId))}
       >
         <Ionicons name={person.liked ? 'heart' : 'heart-outline'} size={22} color={colors.coral} />
       </Pressable>

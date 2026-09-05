@@ -3,7 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { api, useMyCheckin, useMyProfile, useVenueDetail } from '@/api/client';
+import { api, runAction, useMyCheckin, useMyProfile, useVenueDetail } from '@/api/client';
 import { MbtiAvatar } from '@/components/MbtiAvatar';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { RankBadge } from '@/components/RankBadge';
@@ -133,11 +133,11 @@ export default function VenueScreen() {
 
         <View style={styles.footer}>
           {isCheckedIn ? (
-            <Pressable onPress={() => void api.checkOut()}>
+            <Pressable onPress={() => runAction(api.checkOut())}>
               <Text style={styles.checkoutLink}>チェックインを解除する</Text>
             </Pressable>
           ) : (
-            <PrimaryButton label="この店にチェックインする" onPress={() => void api.checkIn(venue.id)} />
+            <PrimaryButton label="この店にチェックインする" onPress={() => runAction(api.checkIn(venue.id))} />
           )}
         </View>
       </View>
