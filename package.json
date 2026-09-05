@@ -42,7 +42,8 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:backend": "cd backend && npm test"
   },
   "private": true
 }
