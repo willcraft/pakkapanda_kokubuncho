@@ -11,7 +11,12 @@ import { sortHobbiesCanonical } from '../lib/hobbies';
 
 export const peopleRoutes = new Hono<AppEnv>();
 
-function serialize(me: { mbti: ActiveUser['mbti']; hobbies: ActiveUser['hobbies'] }, u: ActiveUser, liked: boolean) {
+function serialize(
+  me: { mbti: ActiveUser['mbti']; hobbies: ActiveUser['hobbies'] },
+  u: ActiveUser,
+  liked: boolean,
+  likedMe: boolean,
+) {
   const { total, rank } = compat(me, u);
   return {
     userId: u.userId,
@@ -24,6 +29,7 @@ function serialize(me: { mbti: ActiveUser['mbti']; hobbies: ActiveUser['hobbies'
     venueId: u.venueId,
     compat: { total, rank },
     liked,
+    likedMe,
   };
 }
 
@@ -36,12 +42,22 @@ async function likedSet(d: ReturnType<typeof db>, me: string, targetIds: string[
   return new Set(rows.map((r) => r.toUser));
 }
 
+async function likedMeSet(d: ReturnType<typeof db>, me: string, targetIds: string[]): Promise<Set<string>> {
+  if (targetIds.length === 0) return new Set();
+  const rows = await d
+    .select({ fromUser: likes.fromUser })
+    .from(likes)
+    .where(and(eq(likes.toUser, me), inArray(likes.fromUser, targetIds)));
+  return new Set(rows.map((r) => r.fromUser));
+}
+
 peopleRoutes.get('/people/nearby', async (c) => {
   const d = db(c.env);
   const userId = c.get('userId');
   const [active, me] = await Promise.all([getActiveUsers(d, Date.now(), userId), getMyCompatProfile(d, userId)]);
-  const liked = await likedSet(d, userId, active.map((u) => u.userId));
-  return c.json(active.map((u) => serialize(me, u, liked.has(u.userId))));
+  const ids = active.map((u) => u.userId);
+  const [liked, likedMe] = await Promise.all([likedSet(d, userId, ids), likedMeSet(d, userId, ids)]);
+  return c.json(active.map((u) => serialize(me, u, liked.has(u.userId), likedMe.has(u.userId))));
 });
 
 peopleRoutes.get('/matches', async (c) => {
@@ -54,8 +70,9 @@ peopleRoutes.get('/matches', async (c) => {
     .sort((a, b) => b.total - a.total)
     .slice(0, limit)
     .map((x) => x.u);
-  const liked = await likedSet(d, userId, top.map((u) => u.userId));
-  return c.json(top.map((u) => serialize(me, u, liked.has(u.userId))));
+  const topIds = top.map((u) => u.userId);
+  const [liked, likedMe] = await Promise.all([likedSet(d, userId, topIds), likedMeSet(d, userId, topIds)]);
+  return c.json(top.map((u) => serialize(me, u, liked.has(u.userId), likedMe.has(u.userId))));
 });
 
 peopleRoutes.get('/people/:userId', async (c) => {
@@ -63,10 +80,11 @@ peopleRoutes.get('/people/:userId', async (c) => {
   const userId = c.get('userId');
   const targetId = c.req.param('userId');
   const [active, me] = await Promise.all([getActiveUsers(d, Date.now(), userId), getMyCompatProfile(d, userId)]);
-  const liked = await likedSet(d, userId, [targetId]);
+  const [liked, likedMe] = await Promise.all([likedSet(d, userId, [targetId]), likedMeSet(d, userId, [targetId])]);
 
   const activeTarget = active.find((u) => u.userId === targetId);
-  if (activeTarget) return c.json(serialize(me, activeTarget, liked.has(targetId)));
+  if (activeTarget)
+    return c.json(serialize(me, activeTarget, liked.has(targetId), likedMe.has(targetId)));
 
   // 非アクティブでもチャット解禁済み(どちらか片方向のいいねあり)なら取得できる
   const unlocked = await d
@@ -97,6 +115,6 @@ peopleRoutes.get('/people/:userId', async (c) => {
     venueId: null,
     checkedInAt: null,
   };
-  const body = serialize(me, offline, liked.has(targetId));
+  const body = serialize(me, offline, liked.has(targetId), likedMe.has(targetId));
   return c.json({ ...body, lat: null, lng: null });
 });

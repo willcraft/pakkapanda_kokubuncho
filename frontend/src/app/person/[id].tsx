@@ -87,14 +87,20 @@ export default function PersonScreen() {
       </ScrollView>
 
       <View style={styles.footer}>
-        {person.liked ? (
+        {person.liked && person.likedMe ? (
           <PrimaryButton label="チャットを開く" onPress={() => router.push(`/chat/${person.userId}`)} />
+        ) : person.liked ? (
+          <PrimaryButton label="♡ いいね済み・相手の返事待ち" onPress={() => {}} disabled />
+        ) : person.likedMe ? (
+          <PrimaryButton label="♡ いいねを返してマッチする" onPress={() => void onLike()} />
         ) : (
           <PrimaryButton label="♡ いいねを送る" onPress={() => void onLike()} />
         )}
-        <Text style={styles.footerCaption}>
-          どちらかが「いいね」を送るとチャットができるようになります
-        </Text>
+        {!(person.liked && person.likedMe) && (
+          <Text style={styles.footerCaption}>
+            お互いが「いいね」を送るとチャットができるようになります
+          </Text>
+        )}
       </View>
     </View>
   );

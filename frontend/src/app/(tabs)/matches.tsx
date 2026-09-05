@@ -3,14 +3,33 @@ import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { api, useMatchesList, useMatchesPolling, useVenueSummary } from '@/api/client';
-import type { ApiPerson } from '@/api/types';
+import { api, useMatchesList, useMatchesPolling, useReceivedLikes, useVenueSummary } from '@/api/client';
+import type { ApiPerson, ApiReceivedLike } from '@/api/types';
 import { HobbyTag } from '@/components/HobbyTag';
 import { MbtiAvatar } from '@/components/MbtiAvatar';
 import { colors, rankColor } from '@/theme';
 import { RANK_LABELS, type Rank } from '@/types';
 
 const RANKS: Rank[] = ['S', 'A', 'B', 'C'];
+
+function ReceivedLikeCard({ person }: { person: ApiReceivedLike }) {
+  const router = useRouter();
+  return (
+    <Pressable style={styles.receivedCard} onPress={() => router.push(`/person/${person.userId}`)}>
+      <MbtiAvatar type={person.mbti} size={48} rank={person.compat.rank} />
+      <View style={styles.cardBody}>
+        <View style={styles.nameRow}>
+          <Text style={styles.name}>{person.mbti}</Text>
+          <Text style={styles.age}>・{person.ageBand}</Text>
+        </View>
+        <Text style={styles.receivedHint}>あなたに「いいね」が届いています</Text>
+      </View>
+      <Pressable style={styles.returnButton} onPress={() => void api.sendLike(person.userId)}>
+        <Text style={styles.returnButtonText}>♡ 返す</Text>
+      </Pressable>
+    </Pressable>
+  );
+}
 
 function MatchCard({ person }: { person: ApiPerson }) {
   const router = useRouter();
@@ -49,10 +68,22 @@ function MatchCard({ person }: { person: ApiPerson }) {
 export default function MatchesScreen() {
   useMatchesPolling();
   const matches = useMatchesList();
+  const receivedLikes = useReceivedLikes();
 
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+        {receivedLikes.length > 0 && (
+          <View style={styles.receivedSection}>
+            <Text style={styles.receivedTitle}>あなたにいいねした人</Text>
+            <View style={styles.list}>
+              {receivedLikes.map((p) => (
+                <ReceivedLikeCard key={p.userId} person={p} />
+              ))}
+            </View>
+          </View>
+        )}
+
         <Text style={styles.title}>あなたと相性がいい人</Text>
         <Text style={styles.subtitle}>国分町エリア内・上位3人を表示しています</Text>
 
@@ -132,4 +163,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   likeButtonActive: { borderColor: colors.coral, backgroundColor: colors.coralDark },
+  receivedSection: { marginBottom: 28 },
+  receivedTitle: { color: colors.coral, fontSize: 16, fontWeight: '800', marginBottom: 12 },
+  receivedCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.coralDark,
+    borderColor: colors.coral,
+    borderWidth: 1,
+    borderRadius: 18,
+    padding: 14,
+  },
+  receivedHint: { color: colors.textDim, fontSize: 12, marginTop: 4 },
+  returnButton: {
+    backgroundColor: colors.coral,
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  returnButtonText: { color: '#1A0E10', fontSize: 13, fontWeight: '800' },
 });

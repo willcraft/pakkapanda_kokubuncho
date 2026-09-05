@@ -9,6 +9,7 @@ import type {
   ApiMessage,
   ApiMyCheckin,
   ApiPerson,
+  ApiReceivedLike,
   ApiVenue,
   ApiVenueDetail,
 } from '@/api/types';
@@ -78,6 +79,10 @@ async function refreshMatches(): Promise<void> {
 
 async function refreshChats(): Promise<void> {
   useAppStore.getState().setChats(await request<ApiChatRow[]>('/chats'));
+}
+
+async function refreshReceivedLikes(): Promise<void> {
+  useAppStore.getState().setReceivedLikes(await request<ApiReceivedLike[]>('/likes/received'));
 }
 
 async function refreshMessages(peerId: string): Promise<void> {
@@ -175,11 +180,15 @@ export function useChatsPolling(): void {
   usePoll(refreshChats, 10_000);
 }
 
-/** タブ全体での未読バッジ用(チャットタブを開いていなくても新着に気づけるように) */
-export function useChatsBadgePolling(): void {
+/** タブ全体でのバッジ用(タブを開いていなくても新着いいね・未読に気づけるように) */
+export function useBadgePolling(): void {
   const profile = useMyProfile();
-  usePoll(refreshChats, 15_000, !!profile);
+  usePoll(async () => {
+    await Promise.all([refreshChats(), refreshReceivedLikes()]);
+  }, 15_000, !!profile);
 }
+
+export const useReceivedLikes = () => useAppStore((s) => s.receivedLikes);
 
 export function useUnreadCount(): number {
   const chats = useAppStore((s) => s.chats);
@@ -255,7 +264,7 @@ export const api = {
   sendLike: async (personId: string): Promise<void> => {
     await request('/likes', { method: 'POST', body: { toUserId: personId } });
     useAppStore.getState().markLiked(personId);
-    await refreshChats().catch(() => {});
+    await Promise.all([refreshChats(), refreshReceivedLikes()]).catch(() => {});
   },
 
   sendMessage: async (peerId: string, text: string): Promise<void> => {

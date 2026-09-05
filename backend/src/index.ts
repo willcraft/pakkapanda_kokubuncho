@@ -47,6 +47,7 @@ const PROTECTED_PATHS = [
   '/people/*',
   '/matches',
   '/likes',
+  '/likes/*',
   '/chats',
   '/chats/*',
 ];

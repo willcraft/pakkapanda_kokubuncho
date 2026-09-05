@@ -1,13 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 
-import { useChatsBadgePolling, useHeartbeat, useUnreadCount } from '@/api/client';
+import { useBadgePolling, useHeartbeat, useReceivedLikes, useUnreadCount } from '@/api/client';
 import { colors } from '@/theme';
 
 export default function TabLayout() {
   useHeartbeat();
-  useChatsBadgePolling();
+  useBadgePolling();
   const unread = useUnreadCount();
+  const receivedLikes = useReceivedLikes().length;
   return (
     <Tabs
       screenOptions={{
@@ -31,6 +32,8 @@ export default function TabLayout() {
         name="matches"
         options={{
           title: 'マッチ',
+          tabBarBadge: receivedLikes > 0 ? receivedLikes : undefined,
+          tabBarBadgeStyle: { backgroundColor: colors.coral, color: '#1A0E10', fontWeight: '700' },
           tabBarIcon: ({ color, size }) => <Ionicons name="heart-outline" size={size} color={color} />,
         }}
       />

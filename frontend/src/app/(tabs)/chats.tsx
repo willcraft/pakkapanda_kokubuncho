@@ -38,9 +38,7 @@ export default function ChatsScreen() {
                 <Text style={styles.rowLast} numberOfLines={1}>
                   {item.lastMessage
                     ? item.lastMessage.kind === 'like'
-                      ? item.lastMessage.from === 'me'
-                        ? '♡ いいねを送りました'
-                        : '♡ いいねが届きました'
+                      ? '♡ マッチしました!メッセージを送ってみましょう'
                       : item.lastMessage.text
                     : 'チャットができるようになりました'}
                 </Text>

@@ -41,12 +41,23 @@ export interface ApiPerson {
   venueId: string | null;
   compat: ApiCompat;
   liked: boolean;
+  likedMe: boolean;
+}
+
+/** 自分にいいねをくれた未対応の相手(GET /likes/received) */
+export interface ApiReceivedLike {
+  userId: string;
+  mbti: MbtiType;
+  ageBand: AgeBand;
+  hobbies: Hobby[];
+  compat: ApiCompat;
 }
 
 export type MessageKind = 'text' | 'like';
 
 export interface ApiChatRow {
   peer: { userId: string; mbti: MbtiType; ageBand: AgeBand };
+  matched: boolean;
   lastMessage: {
     id: string;
     text: string;

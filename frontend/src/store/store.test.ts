@@ -18,6 +18,7 @@ function person(userId: string, liked = false): ApiPerson {
     venueId: null,
     compat: { total: 90, rank: 'S' },
     liked,
+    likedMe: false,
   };
 }
 

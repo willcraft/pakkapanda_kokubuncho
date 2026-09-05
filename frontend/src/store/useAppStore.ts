@@ -7,6 +7,7 @@ import type {
   ApiMessage,
   ApiMyCheckin,
   ApiPerson,
+  ApiReceivedLike,
   ApiVenue,
 } from '@/api/types';
 import type { AgeBand, Hobby, MbtiType, Profile } from '@/types';
@@ -29,6 +30,8 @@ interface AppState {
   myCheckin: ApiMyCheckin | null;
   chats: ApiChatRow[];
   messages: Record<string, ApiMessage[]>;
+  /** 自分にいいねをくれた未対応の相手(マッチタブのバッジ・いいねを返す導線) */
+  receivedLikes: ApiReceivedLike[];
   /** サーバーに最後に報告した自分の位置(マップの自分ピン表示に使う) */
   myLocation: { latitude: number; longitude: number } | null;
   /** peerId → 既読済み最終メッセージID(未読バッジ用。メモリ内のみ) */
@@ -48,6 +51,7 @@ interface AppState {
   setMyCheckin: (checkin: ApiMyCheckin | null) => void;
   setMyLocation: (loc: { latitude: number; longitude: number } | null) => void;
   markRead: (peerId: string, messageId: string) => void;
+  setReceivedLikes: (receivedLikes: ApiReceivedLike[]) => void;
   setChats: (chats: ApiChatRow[]) => void;
   setMessages: (peerId: string, messages: ApiMessage[]) => void;
   appendMessages: (peerId: string, messages: ApiMessage[]) => void;
@@ -68,6 +72,7 @@ export const useAppStore = create<AppState>((set) => ({
   messages: {},
   myLocation: null,
   readMarks: {},
+  receivedLikes: [],
 
   setAuthLoaded: (authLoaded) => set({ authLoaded }),
   setUserId: (userId) => set({ userId }),
@@ -110,5 +115,7 @@ export const useAppStore = create<AppState>((set) => ({
     set((s) => ({
       matches: s.matches.map((p) => (p.userId === personId ? { ...p, liked: true } : p)),
       nearby: s.nearby.map((p) => (p.userId === personId ? { ...p, liked: true } : p)),
+      receivedLikes: s.receivedLikes.filter((p) => p.userId !== personId),
     })),
+  setReceivedLikes: (receivedLikes) => set({ receivedLikes }),
 }));

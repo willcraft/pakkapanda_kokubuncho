@@ -20,7 +20,11 @@ function pairFilter(a: string, b: string) {
   );
 }
 
-async function assertUnlocked(d: ReturnType<typeof db>, me: string, peer: string): Promise<void> {
+async function getLikeState(
+  d: ReturnType<typeof db>,
+  me: string,
+  peer: string,
+): Promise<{ iLiked: boolean; likedMe: boolean; matched: boolean }> {
   const rows = await d
     .select({ fromUser: likes.fromUser })
     .from(likes)
@@ -30,7 +34,15 @@ async function assertUnlocked(d: ReturnType<typeof db>, me: string, peer: string
         and(eq(likes.fromUser, peer), eq(likes.toUser, me)),
       ),
     );
-  if (rows.length === 0) throw new ApiError('FORBIDDEN', 'チャットが解禁されていません');
+  const iLiked = rows.some((r) => r.fromUser === me);
+  const likedMe = rows.some((r) => r.fromUser === peer);
+  return { iLiked, likedMe, matched: iLiked && likedMe };
+}
+
+/** 会話(閲覧・送信)は相互いいね=マッチ成立が必須 */
+async function assertMatched(d: ReturnType<typeof db>, me: string, peer: string): Promise<void> {
+  const { matched } = await getLikeState(d, me, peer);
+  if (!matched) throw new ApiError('FORBIDDEN', 'お互いが「いいね」するとチャットができます');
 }
 
 chatRoutes.get('/chats', async (c) => {
@@ -42,7 +54,10 @@ chatRoutes.get('/chats', async (c) => {
     .select({ fromUser: likes.fromUser, toUser: likes.toUser })
     .from(likes)
     .where(or(eq(likes.fromUser, userId), eq(likes.toUser, userId)));
-  const peerIds = [...new Set(likeRows.map((r) => (r.fromUser === userId ? r.toUser : r.fromUser)))];
+  const sentTo = new Set(likeRows.filter((r) => r.fromUser === userId).map((r) => r.toUser));
+  const receivedFrom = new Set(likeRows.filter((r) => r.toUser === userId).map((r) => r.fromUser));
+  // チャット一覧に出るのはマッチ成立(相互いいね)済みのペアのみ
+  const peerIds = [...sentTo].filter((id) => receivedFrom.has(id));
   if (peerIds.length === 0) return c.json([]);
 
   const result = await Promise.all(
@@ -55,6 +70,7 @@ chatRoutes.get('/chats', async (c) => {
       )[0];
       return {
         peer: { userId: peer.id, mbti: peer.mbti, ageBand: peer.ageBand },
+        matched: true,
         lastMessage: last
           ? {
               id: last.id,
@@ -76,7 +92,7 @@ chatRoutes.get('/chats/:userId/messages', async (c) => {
   const d = db(c.env);
   const userId = c.get('userId');
   const peerId = c.req.param('userId');
-  await assertUnlocked(d, userId, peerId);
+  await assertMatched(d, userId, peerId);
 
   const after = c.req.query('after');
   const filter = after ? and(pairFilter(userId, peerId), gt(messages.id, after)) : pairFilter(userId, peerId);
@@ -99,7 +115,7 @@ chatRoutes.post('/chats/:userId/messages', async (c) => {
   const userId = c.get('userId');
   const peerId = c.req.param('userId');
   const body = parse(messageSchema, await jsonBody(c.req));
-  await assertUnlocked(d, userId, peerId);
+  await assertMatched(d, userId, peerId);
 
   const message = {
     id: ulid(),

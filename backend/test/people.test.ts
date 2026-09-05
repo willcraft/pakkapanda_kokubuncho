@@ -84,6 +84,23 @@ describe('GET /people/:userId', () => {
     expect(body.compat.rank).toBe('S');
   });
 
+  it('相手が自分にいいね済みなら likedMe が true', async () => {
+    const enfp = await register({ mbti: 'ENFP', hobbies: ['映画'] });
+    await sendLocation(enfp.token);
+    const me = await register();
+    await sendLocation(me.token);
+    await authed(enfp.token, '/likes', {
+      method: 'POST',
+      body: JSON.stringify({ toUserId: me.userId }),
+    });
+    const body = (await (await authed(me.token, `/people/${enfp.userId}`)).json()) as {
+      liked: boolean;
+      likedMe: boolean;
+    };
+    expect(body.liked).toBe(false);
+    expect(body.likedMe).toBe(true);
+  });
+
   it('非アクティブな相手(チャット未解禁)は 404', async () => {
     const ghost = await register({ mbti: 'ENFP', hobbies: ['映画'] }); // 位置未送信
     const me = await register();
